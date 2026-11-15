@@ -4,6 +4,7 @@ import type { ChatCompletionResponse } from '@freellmapi/shared/types.js';
 import { createApp } from '../../app.js';
 import { initDb, getDb } from '../../db/index.js';
 import { getAllProviders } from '../../providers/index.js';
+import { ZARNUR_DEFAULT_TEMPERATURE, ZARNUR_SYSTEM_PROMPT } from '../../services/zarnur-chat.js';
 
 const FREE_MODEL_ID = 'nvidia/nemotron-3.5-lightning:free';
 const kiloCatalog = {
@@ -115,11 +116,11 @@ describe('Public Zarnur chat API', () => {
     expect(completion).toHaveBeenCalledWith(
       'no-key',
       [
-        expect.objectContaining({ role: 'system' }),
+        { role: 'system', content: ZARNUR_SYSTEM_PROMPT },
         { role: 'user', content: 'Salom' },
       ],
       FREE_MODEL_ID,
-      { max_tokens: 512, temperature: undefined },
+      { max_tokens: 512, temperature: ZARNUR_DEFAULT_TEMPERATURE },
     );
     expect((db.prepare('SELECT COUNT(*) AS count FROM api_keys').get() as { count: number }).count)
       .toBe(keyCountBefore);

@@ -5,6 +5,7 @@ import { getAllProviders } from '../providers/index.js';
 import { sanitizeProviderErrorMessage } from '../lib/error-redaction.js';
 import { isLoopbackRequest } from '../lib/loopback.js';
 import { recordZarnurAiUse } from '../services/zarnur-visitors.js';
+import { ZARNUR_DEFAULT_TEMPERATURE, ZARNUR_SYSTEM_PROMPT } from '../services/zarnur-chat.js';
 
 export const publicChatRouter = Router();
 
@@ -239,14 +240,11 @@ publicChatRouter.post('/completions', async (req: Request, res: Response) => {
     const result = await provider.chatCompletion(
       'no-key',
       [
-        {
-          role: 'system',
-          content: 'You are Zarnur, a helpful multilingual AI assistant. Reply in the user’s language. Help with general questions, writing, planning, and jewelry business when relevant. Do not invent product stock, prices, delivery terms, or business promises; be clear when you do not know current details.',
-        },
+        { role: 'system', content: ZARNUR_SYSTEM_PROMPT },
         ...input.messages,
       ],
       input.modelId,
-      { max_tokens: input.maxTokens ?? 512, temperature: input.temperature },
+      { max_tokens: input.maxTokens ?? 512, temperature: input.temperature ?? ZARNUR_DEFAULT_TEMPERATURE },
     );
     recordZarnurAiUse(req);
     res.setHeader('Cache-Control', 'no-store');

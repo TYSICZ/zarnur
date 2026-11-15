@@ -2,15 +2,9 @@ import { useEffect, useMemo, useRef, useState, type FormEvent } from 'react'
 import { ArrowLeft, ArrowUp, Clapperboard, LoaderCircle, RotateCcw, Sparkles } from 'lucide-react'
 import { Link } from 'react-router-dom'
 import { apiFetch } from '@/lib/api'
+import { choosePreferredZarnurModel, type ZarnurChatModel } from '@/lib/zarnur-chat-model'
 
-interface PublicModel {
-  platform: string
-  provider: string
-  modelId: string
-  displayName: string
-  access: 'guest' | 'member'
-  modelDbId?: number
-}
+type PublicModel = ZarnurChatModel
 
 interface Message {
   role: 'user' | 'assistant'
@@ -19,7 +13,6 @@ interface Message {
 
 const BASE = import.meta.env.BASE_URL.replace(/\/$/, '')
 const MODEL_KEY = (model: PublicModel) => JSON.stringify([model.access, model.platform, model.modelId, model.modelDbId])
-const DEFAULT_MODEL_ID = 'nvidia/nemotron-3.5-lightning:free'
 const SUGGESTIONS = [
   'Instagram uchun zargarlik posti yoz',
   'Mijozga muloyim javob tayyorla',
@@ -143,9 +136,7 @@ export default function PublicChatPage() {
       if (controller.signal.aborted) return
       const availableModels = [...memberModels, ...guestModels]
       setModels(availableModels)
-      const preferredModel = memberModels[0] ??
-        guestModels.find(model => model.modelId === DEFAULT_MODEL_ID) ??
-        guestModels[0]
+      const preferredModel = choosePreferredZarnurModel(availableModels)
       if (preferredModel) setModelKey(MODEL_KEY(preferredModel))
       if (availableModels.length === 0 && guestError) setError(guestError)
       setLoadingModels(false)
@@ -284,7 +275,7 @@ export default function PublicChatPage() {
             </div>
             <h1 className="mt-4 text-xl font-semibold">Salom, men Zarnur.</h1>
             <p className="mt-2 max-w-md text-sm text-muted-foreground">
-              Savolingizni yozing. Hisob ochsangiz administrator ulashgan modellar ham paydo bo‘ladi.
+              O‘zbekcha yozsangiz, javobni o‘zbekcha berishga harakat qilaman. Hisobga kirgach, administrator ulashgan Google AI Studio va Groq modellari tanlovda ko‘rinadi.
             </p>
             {models.length > 0 && (
               <div className="mt-6 flex max-w-xl flex-wrap justify-center gap-2">
@@ -332,6 +323,12 @@ export default function PublicChatPage() {
           </div>
         )}
       </section>
+
+      {account && !models.some(model => model.access === 'member') && (
+        <p className="mx-auto w-full max-w-4xl px-4 pb-2 text-xs text-muted-foreground sm:px-6">
+          Google AI Studio yoki Groq ko‘rinmasa, administrator /admin sahifasida tegishli kalit uchun “Ulashish”ni yoqishi kerak.
+        </p>
+      )}
 
       <footer className="shrink-0 border-t bg-background px-4 pt-3 pb-[calc(0.75rem+env(safe-area-inset-bottom))] sm:px-6">
         <div className="mx-auto max-w-4xl">

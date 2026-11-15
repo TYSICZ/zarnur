@@ -19,12 +19,11 @@ import {
 } from '../services/ratelimit.js';
 import { isSecureChatRequest } from './public-chat.js';
 import type { SessionUser } from '../services/auth.js';
+import { ZARNUR_DEFAULT_TEMPERATURE, ZARNUR_SYSTEM_PROMPT } from '../services/zarnur-chat.js';
 
 export const memberChatRouter = Router();
 
 export const DAILY_MEMBER_LIMIT = 30;
-const ZARNUR_SYSTEM_PROMPT =
-  'You are Zarnur, a helpful multilingual AI assistant. Reply in the user’s language. Help with general questions, writing, planning, and jewelry business when relevant. Do not invent product stock, prices, delivery terms, or business promises; be clear when you do not know current details.';
 
 const completionSchema = z.object({
   modelDbId: z.number().int().positive(),
@@ -180,9 +179,9 @@ memberChatRouter.post('/completions', async (req: Request, res: Response) => {
   try {
     const result = await withKeyProxy(route.proxyUrl, () => route.provider.chatCompletion(
         route.apiKey,
-          messages,
+        messages,
         route.modelId,
-        { max_tokens: parsed.data.maxTokens ?? 512, temperature: parsed.data.temperature },
+        { max_tokens: parsed.data.maxTokens ?? 512, temperature: parsed.data.temperature ?? ZARNUR_DEFAULT_TEMPERATURE },
       ));
     const choice = result.choices?.[0];
     const answer = contentToString(choice?.message?.content ?? '');
