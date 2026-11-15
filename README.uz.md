@@ -208,7 +208,7 @@ Repo ildizidagi `Dockerfile` veb-ilova va API'ni birga build qiladi. Railway'da 
 
 `PORT` ni Railway o'zi beradi. Ommaviy vitrina `/`, AI chat esa `/chat` manzilida. Railway akkaunti va doimiy disk narxlarini deploy qilishdan oldin tekshiring. Qolgan dashboard va `/v1` API egasining bitta akkaunti bilan himoyalangan.
 
-Deploy tugagach, Railway'dan **Generate Domain** qilib berilgan `https://...` manzilni oching — boshqa Wi-Fi yoki telefondan ham shu havola bilan kirasiz. Havolani hammaga yuborishdan oldin birinchi admin akkauntini yarating: sahifa so'raganda Railway servis loglaridagi bir martalik setup kodini kiriting. So'ng admin panel uchun `https://.../admin`, AI chat uchun `https://.../chat` ni ishlating. Hozirgi repoda Railway akkaunti ulanmaganligi sababli hali tayyor public URL yo'q.
+Hozirgi Railway manzili: <https://freellmapi-production-66963685.up.railway.app/> — boshqa Wi-Fi yoki telefondan ham ochiladi. Havolani hammaga yuborishdan oldin `/admin` sahifasida birinchi admin akkauntini yarating. So'ralgan `First-run setup code` ni Railway → `freellmapi` service → active deployment → **View logs** ichidan oling. Dashboard `/admin`, API kalitisiz chat esa `/chat` manzilida.
 
 ## OpenAI bilan mos klientlar
 

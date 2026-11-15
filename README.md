@@ -210,7 +210,7 @@ The repository's root `Dockerfile` builds the web app and API together. In Railw
 
 Railway supplies `PORT` automatically. The public storefront is at `/` and the no-key chat at `/chat`. Railway account and volume pricing are controlled by Railway; review them before deploying. The remaining dashboard and `/v1` routes still require the single owner account.
 
-After deployment, generate a Railway domain and open its `https://...` URL from any Wi-Fi or phone. Before sharing it, create the first owner/admin account using the one-time setup code in the service logs. The owner dashboard is at `/admin`; public chat is at `/chat`. This repository is not connected to a Railway account yet, so no live public URL exists until an owner deploys it.
+The current Railway deployment is available at <https://freellmapi-production-66963685.up.railway.app/> from any Wi-Fi or phone. Before sharing it, create the first owner/admin account at `/admin` using the one-time `First-run setup code` shown in Railway → `freellmapi` service → active deployment → **View logs**. The owner dashboard is at `/admin`; public chat is at `/chat` and does not require an API key.
 
 ## Works with OpenAI-compatible clients
 
