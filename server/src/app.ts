@@ -235,8 +235,8 @@ export function createApp(config?: Config) {
   );
   app.use(ollamaRouter);
 
-  // Public Zarnur BYOK chat. The visitor supplies their own provider key for
-  // this request; this endpoint never stores it or uses dashboard keys.
+  // Public Zarnur chat uses the anonymous free Kilo routes; its shared hourly
+  // cap protects the gateway's per-IP quota.
   app.use('/api/public/chat', createProxyRateLimiter(10), publicChatRouter);
   app.use('/api/public/visitors', createProxyRateLimiter(30), publicVisitorRouter);
   app.use('/api/public/support', createProxyRateLimiter(30), publicSupportRouter);

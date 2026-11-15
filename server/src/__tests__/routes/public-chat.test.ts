@@ -5,6 +5,45 @@ import { createApp } from '../../app.js';
 import { initDb, getDb } from '../../db/index.js';
 import { getAllProviders } from '../../providers/index.js';
 
+const FREE_MODEL_ID = 'nvidia/nemotron-3.5-lightning:free';
+const kiloCatalog = {
+  data: [{
+    id: FREE_MODEL_ID,
+    name: 'NVIDIA: Nemotron 3.5 Lightning (free)',
+    isFree: true,
+    pricing: { prompt: '0', completion: '0' },
+    architecture: { input_modalities: ['text'], output_modalities: ['text'] },
+    preferredIndex: 1,
+  }, {
+    id: 'legacy/paid-route:free',
+    name: 'Legacy paid route',
+    isFree: false,
+    pricing: { prompt: '0.1', completion: '0.2' },
+    architecture: { input_modalities: ['text'], output_modalities: ['text'] },
+    preferredIndex: 0,
+  }, {
+    id: 'images/only-free:free',
+    name: 'Image output model',
+    isFree: true,
+    pricing: { prompt: '0', completion: '0' },
+    architecture: { input_modalities: ['image'], output_modalities: ['image'] },
+    preferredIndex: 2,
+  }],
+};
+
+function mockKiloCatalog() {
+  const nativeFetch = globalThis.fetch;
+  vi.spyOn(globalThis, 'fetch').mockImplementation((input, init) => {
+    if (String(input) === 'https://api.kilo.ai/api/gateway/models') {
+      return Promise.resolve(new Response(JSON.stringify(kiloCatalog), {
+        status: 200,
+        headers: { 'Content-Type': 'application/json' },
+      }));
+    }
+    return nativeFetch(input, init);
+  });
+}
+
 async function call(
   app: Express,
   method: string,
@@ -28,7 +67,7 @@ async function call(
   }
 }
 
-describe('Public BYOK chat API', () => {
+describe('Public Zarnur chat API', () => {
   let app: Express;
 
   beforeAll(() => {
@@ -39,58 +78,55 @@ describe('Public BYOK chat API', () => {
 
   afterEach(() => vi.restoreAllMocks());
 
-  it('lists only enabled chat models from key-based built-in providers without a dashboard session', async () => {
+  it('lists only enabled free Kilo models without a dashboard session', async () => {
+    mockKiloCatalog();
     const response = await call(app, 'GET', '/api/public/chat/models');
     expect(response.status).toBe(200);
     expect(response.body).toHaveProperty('models');
-    const models = (response.body as { models: Array<{ platform: string }> }).models;
+    const models = (response.body as { models: Array<{ platform: string; modelId: string }> }).models;
     expect(models.length).toBeGreaterThan(0);
-    expect(models.every(model => model.platform !== 'custom')).toBe(true);
+    expect(models).toEqual([expect.objectContaining({ platform: 'kilo', modelId: FREE_MODEL_ID })]);
   });
 
-  it('forwards a visitor-supplied key without saving or returning it', async () => {
+  it('uses anonymous free model access without requesting or storing a visitor key', async () => {
+    mockKiloCatalog();
     const db = getDb();
-    const eligibleProvider = getAllProviders().find(provider => {
-      if (provider.platform === 'custom' || provider.keyless || provider.supportsChat === false) return false;
-      return !!db.prepare('SELECT 1 FROM models WHERE platform = ? AND enabled = 1 LIMIT 1').get(provider.platform);
-    });
-    if (!eligibleProvider) throw new Error('Expected at least one enabled built-in chat model');
-    const model = db.prepare(`
-      SELECT model_id FROM models WHERE platform = ? AND enabled = 1 LIMIT 1
-    `).get(eligibleProvider.platform) as { model_id: string };
-    const apiKey = 'visitor-test-key-not-for-storage';
+    const provider = getAllProviders().find(candidate => candidate.platform === 'kilo');
+    if (!provider) throw new Error('Expected the Kilo provider to be registered');
     const result: ChatCompletionResponse = {
       id: 'public-test',
       object: 'chat.completion',
       created: 1,
-      model: model.model_id,
+      model: FREE_MODEL_ID,
       choices: [{ index: 0, message: { role: 'assistant', content: 'Salom!' }, finish_reason: 'stop' }],
       usage: { prompt_tokens: 1, completion_tokens: 1, total_tokens: 2 },
     };
-    const completion = vi.spyOn(eligibleProvider, 'chatCompletion').mockResolvedValue(result);
+    const completion = vi.spyOn(provider, 'chatCompletion').mockResolvedValue(result);
     const keyCountBefore = (db.prepare('SELECT COUNT(*) AS count FROM api_keys').get() as { count: number }).count;
 
     const response = await call(app, 'POST', '/api/public/chat/completions', {
-      platform: eligibleProvider.platform,
-      modelId: model.model_id,
-      apiKey,
+      platform: 'kilo',
+      modelId: FREE_MODEL_ID,
       messages: [{ role: 'user', content: 'Salom' }],
     });
 
     expect(response.status).toBe(200);
     expect(response.body).toEqual(result);
-    expect(JSON.stringify(response.body)).not.toContain(apiKey);
     expect(completion).toHaveBeenCalledWith(
-      apiKey,
-      [{ role: 'user', content: 'Salom' }],
-      model.model_id,
-      { max_tokens: 1024, temperature: undefined },
+      'no-key',
+      [
+        expect.objectContaining({ role: 'system' }),
+        { role: 'user', content: 'Salom' },
+      ],
+      FREE_MODEL_ID,
+      { max_tokens: 512, temperature: undefined },
     );
     expect((db.prepare('SELECT COUNT(*) AS count FROM api_keys').get() as { count: number }).count)
       .toBe(keyCountBefore);
   });
 
-  it('rejects custom endpoints and oversized chat payloads', async () => {
+  it('rejects visitor-supplied keys, non-Kilo providers, and oversized payloads', async () => {
+    mockKiloCatalog();
     const unsupported = await call(app, 'POST', '/api/public/chat/completions', {
       platform: 'custom',
       modelId: 'private-endpoint-model',
@@ -99,10 +135,24 @@ describe('Public BYOK chat API', () => {
     });
     expect(unsupported.status).toBe(400);
 
+    const visitorKey = await call(app, 'POST', '/api/public/chat/completions', {
+      platform: 'kilo',
+      modelId: FREE_MODEL_ID,
+      apiKey: 'must-not-be-accepted',
+      messages: [{ role: 'user', content: 'Hello' }],
+    });
+    expect(visitorKey.status).toBe(400);
+
+    const retiredFreeId = await call(app, 'POST', '/api/public/chat/completions', {
+      platform: 'kilo',
+      modelId: 'legacy/paid-route:free',
+      messages: [{ role: 'user', content: 'Hello' }],
+    });
+    expect(retiredFreeId.status).toBe(400);
+
     const oversized = await call(app, 'POST', '/api/public/chat/completions', {
-      platform: 'google',
-      modelId: 'gemini-test',
-      apiKey: 'visitor-key',
+      platform: 'kilo',
+      modelId: FREE_MODEL_ID,
       messages: [{ role: 'user', content: 'x'.repeat(140 * 1024) }],
     });
     expect(oversized.status).toBe(413);
@@ -110,9 +160,8 @@ describe('Public BYOK chat API', () => {
 
   it('requires HTTPS for visitors opening the chat from a non-local HTTP site', async () => {
     const response = await call(app, 'POST', '/api/public/chat/completions', {
-      platform: 'google',
-      modelId: 'gemini-test',
-      apiKey: 'visitor-key',
+      platform: 'kilo',
+      modelId: FREE_MODEL_ID,
       messages: [{ role: 'user', content: 'Hello' }],
     }, { Origin: 'http://192.168.0.20:5173' });
 

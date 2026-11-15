@@ -2,7 +2,7 @@
 <html lang="uz">
 <head>
   <meta charset="utf-8">
-  <title>Zarnur — foydalanish va API kalit qo‘llanmasi</title>
+  <title>Zarnur — foydalanish va admin sozlash qo‘llanmasi</title>
   <style>
     @page { size: A4; margin: 14mm 15mm 15mm; }
     :root { color-scheme: light; }
@@ -28,8 +28,8 @@
     .card p:last-child { margin-bottom: 0; }
     .provider { display: inline-block; margin-bottom: 1mm; color: #8a5a10; font-weight: 700; }
     a { color: #80540e; text-decoration: underline; }
-    .note { margin: 3mm 0; padding: 3mm; border-left: 3px solid #9b6815; background: #fbf5e9; }
-    .warning { border-left-color: #a53b25; background: #fff4f1; }
+    .note { margin: 3mm 0; padding: 3mm; border: 1px solid #d9bf8d; border-radius: 2mm; background: #fbf5e9; }
+    .warning { border-color: #e2b9ae; background: #fff4f1; }
     ul, ol { margin: 2mm 0 4mm; padding-left: 6mm; }
     li { margin: 1.5mm 0; }
     .footer { position: absolute; right: 0; bottom: 0; left: 0; display: flex; justify-content: space-between; border-top: 1px solid #ded5c4; padding-top: 2mm; color: #625a4d; font-size: 8.5pt; }
@@ -43,17 +43,17 @@
   <section class="page">
     <div class="brand">ZARNUR · BY BILOL SHAYKHUDDINOV</div>
     <h1>AI chatdan<br><span style="color:#80530c">foydalanish qo‘llanmasi</span></h1>
-    <p class="sub">API kalit yaratish, xavfsiz ulash va Zarnur bilan suhbatni boshlash bo‘yicha sodda yo‘riqnoma.</p>
+    <p class="sub">Zarnur bilan bepul suhbat boshlash va birinchi admin akkauntini sozlash bo‘yicha sodda yo‘riqnoma.</p>
     <div class="hero">
-      <h2>Qisqacha: 5 qadam</h2>
-      <p>Har bir tashrif buyuruvchi AI provayderdagi o‘z kalitidan foydalanadi. Zarnur sizning kalitingizni yaratmaydi va serverda saqlamaydi; uni provayderga so‘rov yuborish uchun ishlatadi.</p>
+      <h2>Chat uchun API kaliti shart emas</h2>
+      <p>Bepul modelni tanlab, savolingizni yozing. Bepul provayder xabarlarni xizmatni yaxshilash uchun qayd qilishi mumkin; maxfiy ma’lumot yubormang. Umumiy soatlik limit mavjud.</p>
       <div class="steps">
         <div class="step"><span class="number">1</span><h3>Xavfsiz Zarnur manzilini oching</h3><p>Sayt egasi yuborgan HTTPS havoladan kiring.</p></div>
         <div class="step"><span class="number">2</span><h3>AI chatini tanlang</h3><p>Bosh sahifadagi “Zarnur AI chatini ochish” tugmasini bosing.</p></div>
-        <div class="step"><span class="number">3</span><h3>Provayder va model tanlang</h3><p>Ro‘yxatda ko‘rsatilgan modelning provayderini eslab qoling.</p></div>
-        <div class="step"><span class="number">4</span><h3>O‘z API kalitingizni yarating</h3><p>Faqat provayderning rasmiy saytida hisob ochib, yangi kalit yarating.</p></div>
-        <div class="step"><span class="number">5</span><h3>Kalitni kiriting va yozing</h3><p>Kalitni Zarnurdagi maxfiy kalit maydoniga qo‘ying, xabar yozib yuboring.</p></div>
-        <div class="step"><span class="number">!</span><h3>Kalitni hech kimga yubormang</h3><p>Yordam chatida ham, telefon orqali ham API kalitingizni ulashmang.</p></div>
+        <div class="step"><span class="number">3</span><h3>Bepul modelni tanlang</h3><p>Ro‘yxatda mavjud model avtomatik tanlanadi; xohlasangiz boshqasini tanlang.</p></div>
+        <div class="step"><span class="number">4</span><h3>Savolingizni yozing</h3><p>Matn maydoniga yozing va yuborish tugmasini bosing.</p></div>
+        <div class="step"><span class="number">5</span><h3>Javobni oling</h3><p>Model javob tayyorlayotganda biroz kuting; internet aloqasi kerak.</p></div>
+        <div class="step"><span class="number">!</span><h3>Maxfiy ma’lumot yubormang</h3><p>Parol, karta ma’lumoti yoki maxfiy hujjatlarni chatga yozmang.</p></div>
       </div>
     </div>
     <div class="footer"><span>Zarnur · Xavfsiz AI chat</span><span>1 / 4</span></div>
@@ -61,12 +61,12 @@
 
   <section class="page">
     <div class="brand">ZARNUR · API KALIT YARATISH</div>
-    <h2>Provayderda kalitni qanday olish mumkin?</h2>
-    <p>Har bir provayderning menyu nomi o‘zgarishi mumkin. Quyidagi havolalarni faqat rasmiy provayder sahifasi sifatida oching; hisobingizga kirgandan so‘ng “API keys” bo‘limidan yangi kalit yarating.</p>
+    <h2>Ixtiyoriy: admin uchun provider kaliti</h2>
+    <p>Ommaviy Zarnur chatida API kaliti kerak emas. Faqat administrator serverga boshqa provider qo‘shmoqchi bo‘lsa, quyidagi rasmiy sahifalarda kalit yaratib, admin akkauntidan keyin Zarnur’ning <strong>/keys</strong> sahifasiga kiritadi.</p>
     <div class="card">
       <span class="provider">Google AI Studio</span>
       <p><a href="https://aistudio.google.com/apikey">aistudio.google.com/apikey</a></p>
-      <ol><li>Google hisobingiz bilan kiring.</li><li>“Create API key” tugmasini bosing.</li><li>Kerak bo‘lsa loyiha tanlang yoki yangisini yarating.</li><li>Yangi kalitni nusxalang va Zarnurdagi model provayderi Google bo‘lsa ishlating.</li></ol>
+      <ol><li>Google hisobingiz bilan kiring.</li><li>“Create API key” tugmasini bosing.</li><li>Kerak bo‘lsa loyiha tanlang yoki yangisini yarating.</li><li>Kalitni faqat adminning Zarnur /keys sahifasiga kiriting.</li></ol>
     </div>
     <div class="card">
       <span class="provider">Groq</span>
@@ -76,11 +76,11 @@
     <div class="card">
       <span class="provider">OpenRouter</span>
       <p><a href="https://openrouter.ai/keys">openrouter.ai/keys</a></p>
-      <ol><li>Hisob ochib, Keys bo‘limiga kiring.</li><li>“Create Key” orqali kalit yarating va uni nusxalang.</li><li>Ro‘yxatdagi OpenRouter modelini tanlang; “free” modellar va limitlar o‘zgarishi mumkin.</li></ol>
+      <ol><li>Hisob ochib, Keys bo‘limiga kiring.</li><li>“Create Key” orqali kalit yarating va uni nusxalang.</li><li>Adminning Zarnur /keys sahifasiga kiriting; “free” modellar va limitlar o‘zgarishi mumkin.</li></ol>
     </div>
     <div class="card">
       <span class="provider">Boshqa provayderlar</span>
-      <p>Zarnur ro‘yxatida ko‘rinadigan boshqa provayder uchun ham shu tartib amal qiladi: rasmiy sayt → hisob → API keys → yangi kalit → Zarnurda aynan shu provayderning modelini tanlang.</p>
+      <p>Boshqa provider uchun ham shu tartib: rasmiy sayt → API keys → yangi kalit → adminning Zarnur /keys sahifasi. Kalitni tashrif buyuruvchilarga yoki chatga yubormang.</p>
     </div>
     <div class="note warning"><strong>Bepul degani cheksiz degani emas.</strong> Bepul kvota, ro‘yxatdan o‘tish shartlari, mamlakatlar bo‘yicha mavjudlik va limitlar provayder tomonidan belgilanadi va istalgan vaqtda o‘zgarishi mumkin. Kalit yaratishdan oldin provayderning amaldagi shartlarini tekshiring.</div>
     <div class="footer"><span>Zarnur · API kalit yaratish</span><span>2 / 4</span></div>
@@ -91,19 +91,18 @@
     <h2>Chatni boshlash va muammolarni hal qilish</h2>
     <div class="two-col">
       <div class="card">
-        <h3>Kalitni ulash</h3>
-        <ol><li>Zarnur chatida kerakli provayder va modelni tanlang.</li><li>Shu provayderdan olgan kalitingizni API kalit maydoniga qo‘ying.</li><li>Savolingizni yozib, yuborish tugmasini bosing.</li><li>Boshqa modelga o‘tsangiz, aynan o‘sha provayderning kaliti kerak bo‘lishi mumkin.</li></ol>
+        <h3>Chatni boshlash</h3>
+        <ol><li>/chat sahifasini oching.</li><li>Bepul modelni tanlang.</li><li>Savolingizni yozib, yuborish tugmasini bosing.</li><li>API kalit maydoni yo‘q — kalit kiritish shart emas.</li></ol>
       </div>
       <div class="card">
-        <h3>Kalitni himoya qilish</h3>
-        <ul><li>Kalitni boshqalarga, jumladan Zarnur administratoriga yubormang.</li><li>Umumiy yoki begona qurilmada kalit kiritmang.</li><li>Kalit tasodifan oshkor bo‘lsa, provayder hisobida uni bekor qiling va yangisini yarating.</li><li>Brauzer yopilganda kalit chat oynasida saqlanmaydi; keyingi safar qayta kiriting.</li></ul>
+        <h3>Birinchi admin kirishi</h3>
+        <ol><li>Bosh sahifadagi “Admin kirish” tugmasini yoki /admin manzilini oching.</li><li>Railway → freellmapi service → active deployment → View logs sahifasidan “First-run setup code” qatorini toping.</li><li>Kodni kiriting, email va parol bilan owner/admin akkauntini yarating.</li><li>Provider kaliti kerak bo‘lsa, login qilgach /keys sahifasiga o‘ting.</li></ol>
       </div>
     </div>
     <h3 class="gold">Ko‘p uchraydigan xatolar</h3>
-    <div class="card"><strong>“Invalid API key” yoki 401:</strong> provayder mosligini tekshiring, kalit boshida/oxirida bo‘sh joy yo‘qligini ko‘ring; zarur bo‘lsa rasmiy saytdan yangi kalit yarating.</div>
-    <div class="card"><strong>429 yoki limit tugadi:</strong> provayder kvotasi to‘lgan bo‘lishi mumkin. Limit yangilanishini kuting yoki o‘zingizda kaliti bor boshqa provayder/model tanlang.</div>
+    <div class="card"><strong>429 yoki bepul limit tugadi:</strong> umumiy soatlik kvota to‘lgan bo‘lishi mumkin. Biroz kutib qayta urinib ko‘ring.</div>
     <div class="card"><strong>Model topilmadi:</strong> faqat Zarnur ro‘yxatida mavjud modelni tanlang. Provayder katalogi va modellar o‘zgarib turishi mumkin.</div>
-    <div class="card"><strong>Kalit maydoni ishlamayapti:</strong> HTTPS havolani oching. Oddiy HTTP orqali API kalit yuborish bloklanadi.</div>
+    <div class="card"><strong>Chat ochilmayapti:</strong> xavfsiz HTTPS manzilni oching va internet aloqasini tekshiring.</div>
     <div class="note"><strong>Model javobi noto‘g‘ri yoki sekin bo‘lsa</strong>, boshqa modelni tanlab ko‘ring. Zarnur turli mustaqil provayderlarning modellariga ulanish imkonini beradi; javob sifati va tezligi tanlangan modelga bog‘liq.</div>
     <div class="footer"><span>Zarnur · Xavfsiz foydalanish</span><span>3 / 4</span></div>
   </section>
@@ -114,15 +113,15 @@
     <div class="card">
       <h3>Administrator bilan yozishish</h3>
       <p>Saytdagi “Yordam” tugmasini bosing va savolingizni yuboring. Xabar Zarnur admin panelidagi yordam chatiga tushadi; administrator javob yozgach, shu oynada ko‘rasiz. Javob darhol kelmasligi mumkin.</p>
-      <p>API kalit yaratish bo‘yicha yordam kerak bo‘lsa, provayder nomini ayting. Kalitning o‘zini yubormang.</p>
+      <p>Admin sozlash yoki Zarnurdan foydalanish bo‘yicha yordam kerak bo‘lsa, savolingizni yozing. Parol yoki API kalitning o‘zini yubormang.</p>
     </div>
     <div class="card">
       <h3>Zarnur qanday ma’lumot saqlaydi?</h3>
       <ul><li>Rozilik bergan brauzerga tasodifiy, anonim tashrif identifikatori beriladi.</li><li>Tashriflar va Zarnur AI’dan muvaffaqiyatli foydalanish soni hisoblanadi.</li><li>Faqat umumiy qurilma turi va operatsion tizim aniqlanadi: masalan, telefon · Android yoki telefon · iOS.</li><li>Aniq telefon modeli, IP-manzil va to‘liq brauzer ma’lumoti Zarnur tashriflar jadvalida saqlanmaydi.</li><li>Yordam chatiga yuborgan xabaringiz administratorga ko‘rinadi.</li></ul>
     </div>
     <div class="card">
-      <h3>API kalitingiz haqida</h3>
-      <p>Kalit Zarnur sahifasidan tanlangan provayderga so‘rov yuborish uchun uzatiladi; Zarnur uni o‘z hisoblarida saqlamaydi. Provayderning o‘zi o‘z shartlariga muvofiq so‘rovlarni qayta ishlaydi. API ishlatilishi provayder limitlari yoki pulli to‘lovlariga olib kelishi mumkin — hisobingizdagi shartlarni tekshirib turing.</p>
+      <h3>Bepul AI provayderi haqida</h3>
+      <p>Ommaviy chat anonim bepul Kilo modelidan foydalanadi. Xabarlar uchinchi tomon provayderiga yuboriladi va uning siyosatiga ko‘ra xizmatni yaxshilash yoki modelni o‘qitish uchun qayd qilinishi mumkin. Bepul limitlar o‘zgarishi yoki vaqtincha tugashi mumkin.</p>
     </div>
     <div class="note warning"><strong>Maxfiy ma’lumot yubormang.</strong> API kalit, parol, bank karta ma’lumoti, pasport ma’lumoti va maxfiy ish hujjatlarini yordam chatiga yoki AI suhbatiga yozmang.</div>
     <div class="contact">

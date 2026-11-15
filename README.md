@@ -190,15 +190,15 @@ For macOS 12 Monterey or later, choose **arm64 (Apple Silicon)** or **x64 (Intel
 
 ## Install Zarnur on a phone
 
-Zarnur can be installed as a Progressive Web App from an HTTPS deployment reachable by your phone. On Android, open it in Chrome and choose **Install app** (or **Add to Home screen**). On iPhone, open it in Safari, tap **Share**, then **Add to Home Screen**. The app needs a network connection to reach your Zarnur server; configure provider API keys on that server's **Keys** page. This installs the web app, not an App Store or Google Play native package.
+Zarnur can be installed as a Progressive Web App from an HTTPS deployment reachable by your phone. On Android, open it in Chrome and choose **Install app** (or **Add to Home screen**). On iPhone, open it in Safari, tap **Share**, then **Add to Home Screen**. The public chat works without a visitor API key; optional provider keys can be configured by the owner on the server's **Keys** page. The app needs a network connection to reach your Zarnur server. This installs the web app, not an App Store or Google Play native package.
 
-## Public Zarnur chat (BYOK)
+## Public Zarnur chat (no API key required)
 
-The storefront's **Zarnur AI chatini ochish** button opens `/chat`, a public chat that visitors can use with their own API key. The key stays in that browser tab's memory, is sent only to the selected built-in provider through this server, and is not saved by Zarnur. The chat transcript is also temporary. Custom endpoints and keyless providers are not exposed; requests are limited to 10 per minute per IP. Provider account limits and terms still apply.
+The storefront's **Zarnur AI chatini ochish** button opens `/chat`. Visitors can select an anonymous free Kilo `:free` model and start chatting without entering an API key. The chat transcript is temporary. Requests are limited to 10 per minute per visitor and 180 per hour across the server instance to stay below Kilo's documented 200/hour anonymous IP quota; provider limits and terms can change. Prompts and outputs may be logged by the free provider for training, so visitors should not submit sensitive information.
 
-This does not make the admin dashboard or the `/v1` proxy multi-user: keep those private and never share your dashboard login or server-stored provider keys. The public BYOK page is served by the same Node server as the API, so static-only hosting is not sufficient.
+This does not make the admin dashboard or the `/v1` proxy multi-user: keep those private and never share your dashboard login or server-stored provider keys. The public chat is served by the same Node server as the API, so static-only hosting is not sufficient.
 
-The first-run dashboard account is the owner/admin account; complete setup yourself before sharing the public URL. The public pages offer optional consent-based, anonymous visitor counts, broad device/OS categories, and a support chat with the admin inbox at `/admin`. Exact phone models, IP addresses, and API keys are not stored in this visitor tracker. The Uzbek API-key walkthrough is available as [Zarnur's PDF guide](client/public/zarnur-qollanma.pdf).
+The first-run dashboard account is the owner/admin account; complete setup yourself before sharing the public URL. Open `/admin`; when prompted for first-time setup, use the code shown in the active Railway deployment logs. Optional provider keys can be added later on `/keys` but are not required for public chat. The public pages offer optional consent-based, anonymous visitor counts, broad device/OS categories, and a support chat with the admin inbox at `/admin`. Exact phone models and IP addresses are not stored in this visitor tracker. The Uzbek admin and optional API-key walkthrough is available as [Zarnur's PDF guide](client/public/zarnur-qollanma.pdf).
 
 ### Deploying on Railway
 
@@ -208,7 +208,7 @@ The repository's root `Dockerfile` builds the web app and API together. In Railw
 - `TRUST_PROXY`: `1`, so the server uses Railway's forwarded client IP for rate limits.
 - `ALLOWED_HOSTS`: `${{RAILWAY_PUBLIC_DOMAIN}}`, to allow the generated host while keeping the DNS-rebinding guard enabled.
 
-Railway supplies `PORT` automatically. The public storefront is at `/` and the public BYOK chat at `/chat`. Railway account and volume pricing are controlled by Railway; review them before deploying. The remaining dashboard and `/v1` routes still require the single owner account.
+Railway supplies `PORT` automatically. The public storefront is at `/` and the no-key chat at `/chat`. Railway account and volume pricing are controlled by Railway; review them before deploying. The remaining dashboard and `/v1` routes still require the single owner account.
 
 After deployment, generate a Railway domain and open its `https://...` URL from any Wi-Fi or phone. Before sharing it, create the first owner/admin account using the one-time setup code in the service logs. The owner dashboard is at `/admin`; public chat is at `/chat`. This repository is not connected to a Railway account yet, so no live public URL exists until an owner deploys it.
 

@@ -48,7 +48,13 @@ async function request(path: string, init?: RequestInit): Promise<unknown> {
   return payload
 }
 
-export default function ZarnurSupportChat() {
+export default function ZarnurSupportChat({ chatPage = false }: { chatPage?: boolean }) {
+  const supportPosition = chatPage
+    ? 'bottom-[calc(6rem+env(safe-area-inset-bottom))]'
+    : 'bottom-4'
+  const consentPosition = chatPage
+    ? 'bottom-[calc(12rem+env(safe-area-inset-bottom))]'
+    : 'bottom-4'
   const [consented, setConsented] = useState(() => {
     try {
       return window.localStorage.getItem(CONSENT_KEY) === 'accepted'
@@ -159,15 +165,15 @@ export default function ZarnurSupportChat() {
   return (
     <>
       {!consented && !declined && (
-        <aside className="fixed bottom-4 left-4 z-40 w-[min(26rem,calc(100vw-2rem))] rounded-2xl border bg-card p-4 text-card-foreground shadow-xl">
+        <aside className={`fixed ${consentPosition} left-4 z-40 w-[min(26rem,calc(100vw-2rem))] rounded-2xl border bg-card p-4 text-card-foreground shadow-xl`}>
           <div className="flex items-start gap-3">
             <ShieldCheck className="mt-0.5 size-5 shrink-0 text-amber-600" aria-hidden="true" />
             <div className="min-w-0">
               <p className="text-sm font-semibold">Maxfiylik va yordam chati</p>
               <p className="mt-1 text-xs leading-relaxed text-muted-foreground">
-                Rozilik bersangiz, tashrif va AI foydalanish soni hamda qurilmaning umumiy turi saqlanadi.
-                Aniq telefon modeli, IP-manzil va API kalitingiz saqlanmaydi. Yordam chatidagi xabarlarni
-                Zarnur administratori ko‘radi.
+                {chatPage
+                  ? 'AI xabarlari bepul provayderga yuboriladi va qayd qilinishi mumkin. Maxfiy ma’lumot yubormang. Statistikaga rozilik ixtiyoriy — chatdan roziliksiz ham foydalanasiz.'
+                  : 'Rozilik bersangiz, tashrif va AI foydalanish soni hamda qurilmaning umumiy turi saqlanadi. Aniq telefon modeli va IP-manzil saqlanmaydi. AI xabarlari bepul uchinchi tomon provayderiga yuboriladi va qayd qilinishi mumkin; maxfiy ma’lumot yubormang. Yordam chatidagi xabarlarni Zarnur administratori ko‘radi.'}
               </p>
               {error && <p role="alert" className="mt-2 text-xs text-destructive">{error}</p>}
               <div className="mt-3 flex flex-wrap gap-2">
@@ -195,7 +201,7 @@ export default function ZarnurSupportChat() {
         <button
           type="button"
           onClick={() => setDeclined(false)}
-          className="fixed bottom-4 left-4 z-40 rounded-full border bg-card px-4 py-2.5 text-xs font-medium text-card-foreground shadow-lg"
+          className={`fixed ${supportPosition} left-4 z-40 rounded-full border bg-card px-4 py-2.5 text-xs font-medium text-card-foreground shadow-lg`}
         >
           Yordam va maxfiylik sozlamalari
         </button>
@@ -207,7 +213,7 @@ export default function ZarnurSupportChat() {
             type="button"
             onClick={() => { setLoading(true); setOpen(true) }}
             aria-label="Zarnur administratori bilan yozishish"
-            className="fixed bottom-4 left-4 z-40 inline-flex min-h-11 items-center gap-2 rounded-full border border-amber-300/30 bg-stone-950 px-4 text-sm font-medium text-amber-100 shadow-xl transition hover:bg-stone-900"
+            className={`fixed ${supportPosition} left-4 z-40 inline-flex min-h-11 items-center gap-2 rounded-full border border-amber-300/30 bg-stone-950 px-4 text-sm font-medium text-amber-100 shadow-xl transition hover:bg-stone-900`}
           >
             <MessageCircle className="size-4" aria-hidden="true" />
             Yordam
@@ -218,7 +224,7 @@ export default function ZarnurSupportChat() {
                 <div>
                   <DialogTitle>Admin bilan chat</DialogTitle>
                   <DialogDescription className="mt-1">
-                    API kalit yaratish yoki Zarnurdan foydalanish bo‘yicha savol bering.
+                    Zarnurdan foydalanish yoki buyurtma bo‘yicha savol bering.
                   </DialogDescription>
                 </div>
                 <DialogClose
@@ -231,7 +237,7 @@ export default function ZarnurSupportChat() {
               <div className="min-h-0 flex-1 space-y-3 overflow-y-auto px-5 py-4" aria-live="polite">
                 {messages.length === 0 && !loading && (
                   <p className="rounded-xl bg-muted p-3 text-sm text-muted-foreground">
-                    Salom! Qaysi providerda API kalit yaratish yoki chatni ishlatish bo‘yicha yordam kerak?
+                    Salom! Sizga qanday yordam bera olamiz?
                   </p>
                 )}
                 {messages.map(message => (
@@ -273,7 +279,7 @@ export default function ZarnurSupportChat() {
                   </button>
                 </form>
                 <p className="mt-2 text-[11px] text-muted-foreground">
-                  API kalitingizni bu chatga yubormang.
+                  Maxfiy ma’lumotlarni bu chatga yubormang.
                 </p>
               </div>
             </DialogPopup>

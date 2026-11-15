@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useRef, useState, type FormEvent } from 'react'
-import { ArrowLeft, ArrowUp, KeyRound, LoaderCircle, RotateCcw, Sparkles } from 'lucide-react'
+import { ArrowLeft, ArrowUp, LoaderCircle, RotateCcw, Sparkles } from 'lucide-react'
 import { Link } from 'react-router-dom'
 
 interface PublicModel {
@@ -16,6 +16,12 @@ interface Message {
 
 const BASE = import.meta.env.BASE_URL.replace(/\/$/, '')
 const MODEL_KEY = (model: PublicModel) => JSON.stringify([model.platform, model.modelId])
+const DEFAULT_MODEL_ID = 'nvidia/nemotron-3.5-lightning:free'
+const SUGGESTIONS = [
+  'Instagram uchun zargarlik posti yoz',
+  'Mijozga muloyim javob tayyorla',
+  'Yangi kolleksiya uchun nom top',
+]
 
 function isRecord(value: unknown): value is Record<string, unknown> {
   return typeof value === 'object' && value !== null
@@ -41,11 +47,18 @@ function assistantText(payload: unknown): string {
   }).join('')
 }
 
+function chatError(reason: unknown): string {
+  const message = reason instanceof Error ? reason.message : String(reason)
+  if (/failed to fetch|networkerror|fetch failed/i.test(message)) {
+    return 'Internet ulanishingizni tekshirib, yana urinib ko‘ring.'
+  }
+  return message || 'Javob olishda xatolik yuz berdi.'
+}
+
 export default function PublicChatPage() {
   const secureChatAllowed = window.isSecureContext
   const [models, setModels] = useState<PublicModel[]>([])
   const [modelKey, setModelKey] = useState('')
-  const [apiKey, setApiKey] = useState('')
   const [messages, setMessages] = useState<Message[]>([])
   const [draft, setDraft] = useState('')
   const [loadingModels, setLoadingModels] = useState(true)
@@ -75,7 +88,8 @@ export default function PublicChatPage() {
           typeof model.displayName === 'string',
         )
         setModels(validModels)
-        if (validModels[0]) setModelKey(MODEL_KEY(validModels[0]))
+        const preferredModel = validModels.find(model => model.modelId === DEFAULT_MODEL_ID) ?? validModels[0]
+        if (preferredModel) setModelKey(MODEL_KEY(preferredModel))
       })
       .catch(reason => {
         if (!controller.signal.aborted) {
@@ -95,8 +109,9 @@ export default function PublicChatPage() {
   async function sendMessage(event: FormEvent<HTMLFormElement>) {
     event.preventDefault()
     const content = draft.trim()
-    if (!content || !apiKey.trim() || !selectedModel || sending || !secureChatAllowed) return
+    if (!content || !selectedModel || sending || !secureChatAllowed) return
 
+    const previousMessages = messages
     const nextMessages = [...messages, { role: 'user' as const, content }]
     setMessages(nextMessages)
     setDraft('')
@@ -110,11 +125,7 @@ export default function PublicChatPage() {
         body: JSON.stringify({
           platform: selectedModel.platform,
           modelId: selectedModel.modelId,
-          apiKey: apiKey.trim(),
-          messages: [
-            { role: 'system', content: 'You are Zarnur, a helpful AI assistant. Reply in the language used by the user.' },
-            ...nextMessages.slice(-19),
-          ],
+          messages: nextMessages.slice(-20),
         }),
       })
       const payload: unknown = await response.json()
@@ -123,7 +134,9 @@ export default function PublicChatPage() {
       if (!answer) throw new Error('Model bo‘sh javob qaytardi. Boshqa modelni tanlab ko‘ring.')
       setMessages(current => [...current, { role: 'assistant', content: answer }])
     } catch (reason) {
-      setError(reason instanceof Error ? reason.message : String(reason))
+      setMessages(previousMessages)
+      setDraft(content)
+      setError(chatError(reason))
     } finally {
       setSending(false)
     }
@@ -138,16 +151,13 @@ export default function PublicChatPage() {
         </Link>
         <div className="text-right">
           <p className="text-sm font-semibold">Zarnur AI</p>
-          <p className="text-[11px] text-muted-foreground">Shaxsiy API kalitingiz bilan chat</p>
-          <a href={`${BASE}/zarnur-qollanma.pdf`} target="_blank" rel="noreferrer" className="text-[11px] text-amber-700 underline dark:text-amber-300">
-            API kalit qo‘llanmasi (PDF)
-          </a>
+          <p className="text-[11px] text-muted-foreground">Bepul chat · API kaliti shart emas</p>
         </div>
       </header>
 
       <section className="mx-auto grid w-full max-w-4xl shrink-0 gap-3 px-4 py-4 sm:grid-cols-[minmax(0,1fr)_minmax(0,1.3fr)] sm:px-6">
         <label className="grid gap-1.5 text-xs font-medium">
-          Model
+          Bepul AI modeli
           <select
             value={modelKey}
             onChange={event => setModelKey(event.target.value)}
@@ -155,37 +165,23 @@ export default function PublicChatPage() {
             className="h-10 min-w-0 rounded-lg border bg-background px-3 text-sm font-normal outline-none focus-visible:ring-2 focus-visible:ring-ring"
           >
             {loadingModels && <option value="">Modellar yuklanmoqda…</option>}
-            {!loadingModels && models.length === 0 && <option value="">Model topilmadi</option>}
+            {!loadingModels && models.length === 0 && <option value="">Bepul model hozircha mavjud emas</option>}
             {models.map(model => (
               <option key={MODEL_KEY(model)} value={MODEL_KEY(model)}>
-                {model.provider} — {model.displayName}
+                {model.displayName}
               </option>
             ))}
           </select>
         </label>
 
-        <label className="grid gap-1.5 text-xs font-medium">
-          Provider API kaliti
-          <span className="relative">
-            <KeyRound className="absolute left-3 top-1/2 size-4 -translate-y-1/2 text-muted-foreground" aria-hidden="true" />
-            <input
-              type="password"
-              autoComplete="off"
-              spellCheck={false}
-              maxLength={4096}
-              value={apiKey}
-              onChange={event => setApiKey(event.target.value)}
-              placeholder="O‘zingizning provider kalitingiz"
-              disabled={!secureChatAllowed}
-              className="h-10 w-full rounded-lg border bg-background pl-9 pr-3 text-sm font-normal outline-none focus-visible:ring-2 focus-visible:ring-ring disabled:cursor-not-allowed disabled:opacity-50"
-            />
-          </span>
-          <span className={`font-normal ${secureChatAllowed ? 'text-muted-foreground' : 'text-destructive'}`}>
-            {secureChatAllowed
-              ? 'Kalit so‘rov uchun uzatiladi, serverda saqlanmaydi. Provider limitlari amal qiladi.'
-              : 'API kalitni yuborish uchun HTTPS kerak. Saytning xavfsiz HTTPS manzilini oching.'}
-          </span>
-        </label>
+        <div className="flex items-center rounded-xl border bg-card px-4 py-3">
+          <div>
+            <p className="text-sm font-medium">API kaliti kerak emas</p>
+            <p className="mt-1 text-xs text-muted-foreground">
+              Bepul modelning umumiy soatlik limiti bor.
+            </p>
+          </div>
+        </div>
       </section>
 
       <section
@@ -198,10 +194,29 @@ export default function PublicChatPage() {
             <div className="flex size-14 items-center justify-center rounded-2xl bg-amber-500/10 text-amber-600 dark:text-amber-300">
               <Sparkles className="size-7" aria-hidden="true" />
             </div>
-            <h1 className="mt-4 text-xl font-semibold">Zarnur bilan suhbatni boshlang</h1>
+            <h1 className="mt-4 text-xl font-semibold">Salom, men Zarnur.</h1>
             <p className="mt-2 max-w-md text-sm text-muted-foreground">
-              Modelni tanlang, o‘z API kalitingizni kiriting va savolingizni yozing.
+              Savolingizni yozing — API kaliti kiritish shart emas.
             </p>
+            {models.length > 0 && (
+              <div className="mt-6 flex max-w-xl flex-wrap justify-center gap-2">
+                {SUGGESTIONS.map(suggestion => (
+                  <button
+                    key={suggestion}
+                    type="button"
+                    onClick={() => setDraft(suggestion)}
+                    className="min-h-10 rounded-full border bg-card px-3.5 text-xs text-foreground transition hover:border-amber-500/50 hover:bg-amber-500/5 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+                  >
+                    {suggestion}
+                  </button>
+                ))}
+              </div>
+            )}
+            {!loadingModels && models.length === 0 && (
+              <p className="mt-4 max-w-md text-sm text-destructive">
+                {error || 'Bepul AI hozircha javob bera olmaydi. Birozdan keyin qayta urinib ko‘ring.'}
+              </p>
+            )}
           </div>
         ) : (
           <div className="space-y-4 py-4">
@@ -230,7 +245,7 @@ export default function PublicChatPage() {
         )}
       </section>
 
-      <footer className="shrink-0 border-t bg-background px-4 py-3 sm:px-6">
+      <footer className="shrink-0 border-t bg-background px-4 pt-3 pb-[calc(0.75rem+env(safe-area-inset-bottom))] sm:px-6">
         <div className="mx-auto max-w-4xl">
           {error && <p role="alert" className="mb-2 text-sm text-destructive">{error}</p>}
           <form onSubmit={sendMessage} className="flex items-end gap-2 rounded-2xl border bg-card p-2 shadow-sm">
@@ -245,20 +260,29 @@ export default function PublicChatPage() {
               }}
               maxLength={6000}
               rows={2}
-              placeholder={apiKey ? 'Xabaringizni yozing…' : 'Avval provider API kalitini kiriting'}
+              placeholder={selectedModel ? 'Zarnurga savolingizni yozing…' : 'Bepul AI ulanmoqda…'}
               aria-label="Xabar"
               className="max-h-36 min-h-10 flex-1 resize-y bg-transparent px-2 py-2 text-sm outline-none placeholder:text-muted-foreground"
-              disabled={sending || !secureChatAllowed}
+              disabled={sending || !secureChatAllowed || !selectedModel}
             />
             <button
               type="submit"
               aria-label="Xabarni yuborish"
-              disabled={sending || !secureChatAllowed || !apiKey.trim() || !selectedModel || !draft.trim()}
+              disabled={sending || !secureChatAllowed || !selectedModel || !draft.trim()}
               className="inline-flex size-10 shrink-0 items-center justify-center rounded-xl bg-primary text-primary-foreground transition hover:opacity-90 disabled:pointer-events-none disabled:opacity-40"
             >
               {sending ? <LoaderCircle className="size-4 animate-spin" /> : <ArrowUp className="size-5" />}
             </button>
           </form>
+          <p className="mt-2 text-center text-[11px] leading-relaxed text-muted-foreground">
+            Xabarlar bepul AI provayderiga yuboriladi va xizmatni yaxshilash uchun qayd qilinishi mumkin.
+            Maxfiy ma’lumot yubormang.
+          </p>
+          {!secureChatAllowed && (
+            <p role="alert" className="mt-2 text-center text-xs text-destructive">
+              Xavfsiz ulanish uchun Zarnur’ni HTTPS manzilidan oching.
+            </p>
+          )}
           {messages.length > 0 && (
             <button
               type="button"

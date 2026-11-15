@@ -38,7 +38,7 @@ export default function JewelryLandingPage() {
             </span>
             <h1 className="mt-5 max-w-xl text-3xl font-semibold leading-tight tracking-tight sm:text-4xl lg:text-5xl">
               Har bir taqinchoqda —{' '}
-              <span className="bg-gradient-to-r from-amber-100 via-amber-300 to-yellow-600 bg-clip-text text-transparent">
+              <span className="text-amber-300">
                 o‘zgacha nafislik
               </span>
             </h1>
@@ -127,7 +127,7 @@ export default function JewelryLandingPage() {
             Savolingiz bormi? Zarnur bilan suhbatni boshlang.
           </h2>
           <p className="mt-2 max-w-xl text-sm text-stone-300">
-            Yordamchi bilan qulay va tezkor chat qiling.
+            Bepul AI yordamchi. Savol yozing — API kaliti shart emas.
           </p>
         </div>
         <Link
@@ -143,7 +143,7 @@ export default function JewelryLandingPage() {
           rel="noreferrer"
           className="inline-flex min-h-11 items-center justify-center rounded-xl border border-amber-100/25 px-4 py-2 text-sm font-medium text-amber-100 transition hover:bg-white/5"
         >
-          API kalit qo‘llanmasi (PDF)
+          Ixtiyoriy API qo‘llanma (PDF)
         </a>
       </section>
 
@@ -162,6 +162,15 @@ export default function JewelryLandingPage() {
           <ArrowRight className="size-4" aria-hidden="true" />
         </a>
       </section>
+
+      <footer className="mt-8 flex justify-end">
+        <Link
+          to="/admin"
+          className="min-h-10 rounded-lg px-3 py-2 text-xs text-muted-foreground underline-offset-4 transition hover:text-foreground hover:underline"
+        >
+          Admin kirish
+        </Link>
+      </footer>
     </div>
   )
 }
