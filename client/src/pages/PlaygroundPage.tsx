@@ -1,6 +1,7 @@
 import { useState, useRef, useEffect, useMemo, useCallback, type ReactNode } from 'react'
 import { useQuery, useQueryClient } from '@tanstack/react-query'
-import { ChevronRight, CircleAlert, FileText, Globe, X } from 'lucide-react'
+import { ArrowRight, ChevronRight, CircleAlert, FileText, Globe, Sparkles, X } from 'lucide-react'
+import { Link } from 'react-router-dom'
 import { apiFetch } from '@/lib/api'
 import { buildModelOptions } from '@/lib/model-groups'
 import type { Chain } from '@/components/chain-manager'
@@ -1058,16 +1059,62 @@ export default function PlaygroundPage() {
       />
 
       <div className="flex min-w-0 flex-1 flex-col">
+        <header className="flex h-12 shrink-0 items-center justify-between gap-3 border-b px-4">
+          <div className="flex min-w-0 items-center gap-2" role="group" aria-label="Zarnur AI">
+            <span className="flex size-7 shrink-0 items-center justify-center rounded-lg bg-primary/10 text-primary">
+              <Sparkles className="size-4" />
+            </span>
+            <span className="font-semibold tracking-tight">Zarnur</span>
+            <span className="rounded-full border px-1.5 py-0.5 text-[10px] font-medium text-muted-foreground">AI</span>
+          </div>
+          <div className="flex min-w-0 flex-col items-end leading-tight">
+            <a
+              href="tel:+998909565605"
+              aria-label="Murojaat uchun: +99890 956 56 05"
+              className="text-right hover:text-primary"
+            >
+              <span className="block text-[9px] text-muted-foreground">Murojaat uchun</span>
+              <span className="block text-[11px] font-medium sm:text-xs">+99890 956 56 05</span>
+            </a>
+            <span className="max-w-[40vw] truncate text-[9px] text-muted-foreground sm:max-w-[45%]" title={activeModelLabel}>
+              {activeModelLabel}
+            </span>
+          </div>
+        </header>
         <div ref={transcriptRef} className="min-h-0 flex-1 overflow-y-auto p-6">
           {/* The chat sits in a centred column; the composer below shares its width. */}
           <div className="mx-auto h-full w-full max-w-3xl space-y-4">
           {messages.length === 0 ? (
-            <div className="flex items-center justify-center h-full text-center">
-              <div className="space-y-2 max-w-sm">
-                <p className="text-base font-medium">{t('playground.emptyTitle')}</p>
-                <p className="text-sm text-muted-foreground">
-                  {t('playground.emptyDescription', { model: activeModelLabel })}
-                </p>
+            <div className="flex min-h-full items-center justify-center px-3 py-8 text-center">
+              <div className="flex w-full max-w-md flex-col items-center">
+                <div className="flex size-14 items-center justify-center rounded-2xl border bg-card shadow-sm">
+                  <Sparkles className="size-6 text-primary" />
+                </div>
+                <p className="mt-4 text-xs font-semibold tracking-[0.2em] text-primary">ZARNUR AI</p>
+                <div className="mt-3 space-y-2">
+                  <h1 className="text-2xl font-semibold tracking-tight">{t('playground.emptyTitle')}</h1>
+                  <p className="text-sm leading-relaxed text-muted-foreground">
+                    {t('playground.emptyDescription', { model: activeModelLabel })}
+                  </p>
+                </div>
+                {availableModels.length === 0 ? (
+                  <div className="mt-6 w-full rounded-2xl border bg-card/70 p-4 text-left shadow-sm">
+                    <p className="text-sm leading-relaxed text-muted-foreground">{t('playground.noModels')}</p>
+                    <Link
+                      to="/keys"
+                      className="mt-3 inline-flex min-h-10 items-center gap-2 rounded-lg bg-primary px-3.5 py-2 text-sm font-medium text-primary-foreground transition-opacity hover:opacity-90"
+                    >
+                      {t('nav.keys')}
+                      <ArrowRight className="size-4" />
+                    </Link>
+                  </div>
+                ) : (
+                  <div className="mt-6 inline-flex items-center gap-2 rounded-full border bg-card/70 px-3 py-1.5 text-xs shadow-sm">
+                    <span className="size-1.5 rounded-full bg-emerald-500" />
+                    <span className="text-muted-foreground">{t('common.model')}:</span>
+                    <span className="max-w-48 truncate font-medium">{activeModelLabel}</span>
+                  </div>
+                )}
               </div>
             </div>
           ) : (

@@ -22,7 +22,7 @@ $restrictedSid = 'S-1-15-2-2'
 $zombieSid = 'S-1-15-3-1024-1065365936-1281604716-3511738428-1654721687-432734479-3232135806-4053264122-3456934681'
 
 function Stop-App {
-  Get-Process -Name 'FreeLLMAPI' -ErrorAction SilentlyContinue | Stop-Process -Force
+  Get-Process -Name 'Zarnur' -ErrorAction SilentlyContinue | Stop-Process -Force
   Start-Sleep -Seconds 2
 }
 
@@ -52,7 +52,7 @@ function Assert-Launches([string]$exe, [string]$label) {
   }
   # Stay up a while longer: the reported crash lands a few seconds after the
   # server has started listening.
-  if ($up) { Start-Sleep -Seconds 20; $up = (Test-Up) -and (Get-Process -Name 'FreeLLMAPI' -ErrorAction SilentlyContinue) }
+  if ($up) { Start-Sleep -Seconds 20; $up = (Test-Up) -and (Get-Process -Name 'Zarnur' -ErrorAction SilentlyContinue) }
 
   Write-Host "-- log ($label):"
   if (Test-Path $log) { Get-Content $log | Select-String -Pattern 'gpu|GPU|running on' | ForEach-Object { Write-Host "   $_" } }
@@ -63,13 +63,13 @@ function Assert-Launches([string]$exe, [string]$label) {
     Write-Host "::notice::$label did not hit a GPU crash on this runner"
   }
   Stop-App
-  if (-not $up) { throw "${label}: FreeLLMAPI was not up and serving on 127.0.0.1:31415" }
+  if (-not $up) { throw "${label}: Zarnur was not up and serving on 127.0.0.1:31415" }
   Write-Host "== ${label}: OK"
 }
 
 # 1. Broken ACL repro on the unpacked app.
 $unpacked = Join-Path $Dist 'win-unpacked'
-$broken = Join-Path $env:RUNNER_TEMP 'gpu-acl-repro\FreeLLMAPI'
+$broken = Join-Path $env:RUNNER_TEMP 'gpu-acl-repro\Zarnur'
 if (Test-Path $broken) { Remove-Item -Recurse -Force $broken }
 New-Item -ItemType Directory -Force -Path (Split-Path $broken) | Out-Null
 Copy-Item -Recurse $unpacked $broken
@@ -79,18 +79,18 @@ if ($LASTEXITCODE -ne 0) { throw 'could not add the orphaned SID to the repro fo
 Write-Host '-- repro folder ACL:'; & icacls $broken
 
 Reset-UserData
-Assert-Launches (Join-Path $broken 'FreeLLMAPI.exe') 'broken-ACL portable copy'
+Assert-Launches (Join-Path $broken 'Zarnur.exe') 'broken-ACL portable copy'
 
 # 2. NSIS install grants the SID.
-$setup = Get-ChildItem -Path $Dist -Filter 'FreeLLMAPI-Setup-*.exe' | Select-Object -First 1
-if (-not $setup) { throw "no FreeLLMAPI-Setup-*.exe in $Dist" }
+$setup = Get-ChildItem -Path $Dist -Filter 'Zarnur-Setup-*.exe' | Select-Object -First 1
+if (-not $setup) { throw "no Zarnur-Setup-*.exe in $Dist" }
 Write-Host "== installing $($setup.Name) silently"
 $p = Start-Process -FilePath $setup.FullName -ArgumentList '/S' -Wait -PassThru
 if ($p.ExitCode -ne 0) { throw "installer exited $($p.ExitCode)" }
 Stop-App  # a one-click install may start the app when it finishes
 
-$exe = Get-ChildItem -Path (Join-Path $env:LOCALAPPDATA 'Programs') -Recurse -Filter 'FreeLLMAPI.exe' -ErrorAction SilentlyContinue | Select-Object -First 1
-if (-not $exe) { throw 'FreeLLMAPI.exe not found under %LOCALAPPDATA%\Programs after install' }
+$exe = Get-ChildItem -Path (Join-Path $env:LOCALAPPDATA 'Programs') -Recurse -Filter 'Zarnur.exe' -ErrorAction SilentlyContinue | Select-Object -First 1
+if (-not $exe) { throw 'Zarnur.exe not found under %LOCALAPPDATA%\Programs after install' }
 $installDir = $exe.DirectoryName
 Write-Host "-- install folder ACL ($installDir):"
 $acl = & icacls $installDir

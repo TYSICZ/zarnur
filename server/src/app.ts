@@ -27,6 +27,8 @@ import { backupsRouter } from './routes/backups.js';
 import { cacheRouter } from './routes/cache.js';
 import { compressionRouter } from './routes/compression.js';
 import { authRouter } from './routes/auth.js';
+import { publicChatRouter } from './routes/public-chat.js';
+import { adminSupportRouter, publicSupportRouter, publicVisitorRouter } from './routes/public-support.js';
 import { docsRouter } from './routes/docs.js';
 import { mcpRouter } from './routes/mcp.js';
 import { statusRouter, providersRouter } from './routes/status.js';
@@ -212,6 +214,8 @@ export function createApp(config?: Config) {
     ['/v1', '/v1beta', '/mcp', '/api/chat', '/api/generate', '/api/embed', '/api/embeddings'],
     express.json({ limit: cfg.requestBodyLimitBytes }),
   );
+  app.use('/api/public/chat/completions', express.json({ limit: '128kb' }));
+  app.use(['/api/public/visitors', '/api/public/support'], express.json({ limit: '16kb' }));
   app.use(express.json({ limit: '10mb' }));
 
   // Caller identity (IP + User-Agent) for request analytics, carried in
@@ -230,6 +234,12 @@ export function createApp(config?: Config) {
     createProxyRateLimiter(cfg.proxyRateLimitRpm),
   );
   app.use(ollamaRouter);
+
+  // Public Zarnur BYOK chat. The visitor supplies their own provider key for
+  // this request; this endpoint never stores it or uses dashboard keys.
+  app.use('/api/public/chat', createProxyRateLimiter(10), publicChatRouter);
+  app.use('/api/public/visitors', createProxyRateLimiter(30), publicVisitorRouter);
+  app.use('/api/public/support', createProxyRateLimiter(30), publicSupportRouter);
 
   // Admin API — all routes share an IP-based rate limiter to throttle
   // brute-force attempts (auth, key export, etc). The limiter is mounted
@@ -272,6 +282,7 @@ export function createApp(config?: Config) {
   // Saved Playground transcripts (the chat sidebar). Dashboard-session gated
   // like every other admin route; the unified /v1 key does not open it.
   app.use('/api/conversations', requireAuth, conversationsRouter);
+  app.use('/api/support', requireAuth, adminSupportRouter);
   // Server logs for the dashboard viewer. Dashboard-session gated like the rest
   // of /api — these lines name providers, models and key ids, so the unified
   // /v1 key must not open them.

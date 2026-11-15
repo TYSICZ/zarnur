@@ -50,6 +50,7 @@ import * as customMediaEndpointIdentity from '../migrations/20261028_000001_cust
 import * as cloudflareNeuronUsage from '../migrations/20261104_000001_cloudflare_neuron_usage.js';
 import * as modelMonthlyUsage from '../migrations/20261111_000001_model_monthly_usage.js';
 import * as profileRoutingStrategy from '../migrations/20261111_000002_profile_routing_strategy.js';
+import * as zarnurVisitorsSupport from '../migrations/20261112_000001_zarnur_visitors_support.js';
 
 export interface MigrationModule {
   up(db: Db): void;
@@ -164,4 +165,5 @@ export const DEFAULT_MIGRATIONS: readonly DefaultMigration[] = [
   { filename: CLOUDFLARE_NEURON_USAGE_FILENAME, module: cloudflareNeuronUsage },
   { filename: MODEL_MONTHLY_USAGE_FILENAME, module: modelMonthlyUsage },
   { filename: PROFILE_ROUTING_STRATEGY_FILENAME, module: profileRoutingStrategy },
+  { filename: '20261112_000001_zarnur_visitors_support.ts', module: zarnurVisitorsSupport },
 ];

@@ -1,0 +1,25 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 640 420">
+  <defs>
+    <linearGradient id="bg" x1="0" y1="0" x2="1" y2="1">
+      <stop stop-color="#16120d"/>
+      <stop offset="1" stop-color="#352716"/>
+    </linearGradient>
+    <linearGradient id="gold" x1="0" y1="0" x2="1" y2="1">
+      <stop stop-color="#fff0b0"/>
+      <stop offset=".45" stop-color="#d9a441"/>
+      <stop offset="1" stop-color="#fff0b0"/>
+    </linearGradient>
+    <radialGradient id="glow">
+      <stop stop-color="#eabf64" stop-opacity=".28"/>
+      <stop offset="1" stop-color="#eabf64" stop-opacity="0"/>
+    </radialGradient>
+  </defs>
+  <rect width="640" height="420" fill="url(#bg)"/>
+  <circle cx="320" cy="210" r="205" fill="url(#glow)"/>
+  <circle cx="320" cy="253" r="116" fill="none" stroke="#8e642d" stroke-width="36" opacity=".55"/>
+  <ellipse cx="320" cy="244" rx="116" ry="73" fill="none" stroke="url(#gold)" stroke-width="25"/>
+  <path d="m285 160 35-58 35 58-35 29z" fill="url(#gold)"/>
+  <path d="m285 160 35 29 35-29-35-16z" fill="#fff5ce" opacity=".8"/>
+  <path d="m320 102v87" stroke="#fff9e8" stroke-opacity=".75" stroke-width="2"/>
+  <text x="578" y="382" fill="#f2d89e" font-family="Georgia,serif" font-size="17" letter-spacing="5" text-anchor="end">ZARNUR</text>
+</svg>

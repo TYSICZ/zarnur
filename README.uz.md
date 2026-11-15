@@ -1,6 +1,6 @@
 <div align="center">
 
-# FreeLLMAPI
+# Zarnur AI
 
 **Oyiga 10,1 milliard token. 87 ta bepul LLM provayderi. 1313 ta bepul model endpointi. OpenAI bilan mos bitta endpoint.**
 
@@ -27,7 +27,7 @@ Bu tarjima ortda qolishi mumkin. Eng so'nggi ma'lumot uchun inglizcha README'ga 
   <a href="https://apps.apple.com/app/id6804648934"><img src="repo-assets/badges/app-store.svg" height="48" alt="Download on the App Store"></a>
 </p>
 
-![FreeLLMAPI dashboard: oylik token hajmi ko'rsatilgan Modellar sahifasi](repo-assets/github-hero.png)
+![Zarnur AI dashboard: oylik token hajmi ko'rsatilgan Modellar sahifasi](repo-assets/github-hero.png)
 
 Routeringiz model katalogini imzolangan manbadan o'zi yangilaydi: yangi bepul modellar, limit o'zgarishlari va moslik tuzatishlari `git pull` qilmasdan yetib keladi. Bepul o'rnatmalar oylik snapshotni oladi, ya'ni model jonli manbaga qo'shilganidan 30 kun o'tib ularga yetib boradi; premium routerlar uni o'sha kuniyoq oladi.
 **[freellmapi.co'da jonli manbaga ulaning](https://freellmapi.co/?utm_source=github&utm_medium=readme&utm_campaign=premium&utm_content=readme_top#pricing)** (yiliga $19, istalgan vaqtda bekor qilish mumkin).
@@ -62,9 +62,9 @@ Routeringiz model katalogini imzolangan manbadan o'zi yangilaydi: yangi bepul mo
 
 Bugun har bir jiddiy AI laboratoriyasi bepul tarif taklif qiladi: oyiga bir necha million token, kuniga bir necha ming so'rov. Alohida olinganda har bir tarif o'yinchoqdek gap. Lekin ularni birlashtirsangiz, oyiga taxminan **10,1 milliard token** ishchi inference quvvati hosil bo'ladi. Bu kichik va tezkor modellardan tortib ancha qobiliyatlilarigacha bo'lgan **736 ta model oilasi / 1313 ta provayder endpointi**ni qamrab oladi.
 
-Muammo shundaki, ularni qo'lda birlashtirish juda og'ir: sakson yettita turli SDK, sakson yettita turli limit, so'rov xato berishi mumkin bo'lgan sakson yettita joy. FreeLLMAPI bularning hammasini OpenAI bilan mos bitta endpointga jamlaydi. Istalgan OpenAI klient kutubxonasini lokal serveringizga yo'naltiring, u esa so'rovlarni siz kalit qo'shgan provayderlar bo'ylab sezdirmasdan taqsimlaydi.
+Muammo shundaki, ularni qo'lda birlashtirish juda og'ir: sakson yettita turli SDK, sakson yettita turli limit, so'rov xato berishi mumkin bo'lgan sakson yettita joy. Zarnur bularning hammasini OpenAI bilan mos bitta endpointga jamlaydi. Istalgan OpenAI klient kutubxonasini lokal serveringizga yo'naltiring, u esa so'rovlarni siz kalit qo'shgan provayderlar bo'ylab sezdirmasdan taqsimlaydi.
 
-Bundan tashqari, bepul tariflar manzarasi har hafta o'zgaradi: provayderlar ogohlantirmasdan model chiqaradi, eskilarini o'chiradi va limitlarni o'zgartiradi. FreeLLMAPI bularning barchasini siz uchun kuzatib boradi. Router imzolangan model katalogini [freellmapi.co](https://freellmapi.co) dan o'zi tortib oladi, shuning uchun o'rnatmangiz `git pull` qilmasdan ham dolzarb bo'lib turadi. Qanchalik tez yangilanishi haqida [Premium (jonli katalog)](#premium-jonli-katalog) bo'limida o'qing.
+Bundan tashqari, bepul tariflar manzarasi har hafta o'zgaradi: provayderlar ogohlantirmasdan model chiqaradi, eskilarini o'chiradi va limitlarni o'zgartiradi. Zarnur bularning barchasini siz uchun kuzatib boradi. Router imzolangan model katalogini [freellmapi.co](https://freellmapi.co) dan o'zi tortib oladi, shuning uchun o'rnatmangiz `git pull` qilmasdan ham dolzarb bo'lib turadi. Qanchalik tez yangilanishi haqida [Premium (jonli katalog)](#premium-jonli-katalog) bo'limida o'qing.
 
 ![Bepul tariflar birlashtirilganda: 87 ta provayder bo'ylab oyiga ~10,1 mlrd token bepul inference](repo-assets/free-tier.png)
 
@@ -156,7 +156,7 @@ Ochiq hujjatlar asosida, 2026-yil iyul. Tuzatishlar mamnuniyat bilan qabul qilin
 - **Promptni siqish (ixtiyoriy)**: umumiy, xatoda so'rovni to'xtatmaydigan (fail-open) pipeline kesh tekshiruvi va routingdan oldin promptlardagi takrorlarni olib tashlashi, tool natijalarini filtrlashi, takrorlanuvchi JSON'ni ixchamlashi va eskirgan kontekstni qisqartirishi mumkin. [Batafsil →](docs/en/compression/01-compression-pipeline.md)
 - **Shifrlangan kalitlar, tashqariga bitta token**: provayder kalitlari SQLite'da AES-256-GCM bilan shifrlangan va har bir so'rovda faqat xotirada ochiladi. Ilovalaringiz faqat bitta birlashtirilgan `freellmapi-…` bearer tokenni ko'radi.
 - **Admin dashboard va analitika**: kalitlarni boshqarish, zanjirni qayta tartiblash, playground'da sinash va 24 soatdan 90 kungacha bo'lgan oraliqlarda p50/p95/TTFT analitikasini ko'rish uchun React interfeysi. Login bilan himoyalangan, qorong'i va yorug' mavzular, [60 ta til](#tillar).
-- **ChatGPT'ga tayyor MCP server va interaktiv hujjatlar**: ChatGPT va boshqa MCP klientlari `/mcp` orqali FreeLLMAPI inference'ini chaqirishi, foydalanish mumkin bo'lgan modellar ro'yxatini olishi, provayder holati, sarf, kesh va routing metama'lumotlarini ko'rishi hamda routing strategiyasini boshqarishi mumkin. Tashqi bog'liqliklarsiz OpenAPI ko'ruvchisi `/v1/docs` manzilida. [ChatGPT va kodlash agentlari →](docs/en/clients/01-agent-clients.md#mcp-server)
+- **ChatGPT'ga tayyor MCP server va interaktiv hujjatlar**: ChatGPT va boshqa MCP klientlari `/mcp` orqali Zarnur inference'ini chaqirishi, foydalanish mumkin bo'lgan modellar ro'yxatini olishi, provayder holati, sarf, kesh va routing metama'lumotlarini ko'rishi hamda routing strategiyasini boshqarishi mumkin. Tashqi bog'liqliklarsiz OpenAPI ko'ruvchisi `/v1/docs` manzilida. [ChatGPT va kodlash agentlari →](docs/en/clients/01-agent-clients.md#mcp-server)
 - **Operatsion qulayliklar**: ixtiyoriy javob keshi, shifrlangan ma'lumotlar bazasi zaxiralari, kalitlarning muntazam holat tekshiruvi, kalitlarni ommaviy import/eksport qilish, deklarativ ishga tushirish konfiguratsiyasi. [O'rnatish va deploy →](docs/en/install/01-install.md)
 - **Node 20+ ishlaydigan har qanday joyda ishlaydi**: Windows, macOS, Linux serverlar yoki kichik ARM bir platali kompyuter (Raspberry Pi ham). PM2, systemd yoki o'zingiz yoqtirgan supervisor ostida bo'sh turganda ~40 MB RSS egallaydi.
 
@@ -182,11 +182,33 @@ Qolgan hamma narsa (Docker Compose, lokal ishlab chiqish, deklarativ ishga tushi
 
 [`desktop/`](./desktop) papkasida menyu panelida ishlaydigan nativ ilova bor: butun router va dashboard trey'dan turib lokal ishlaydi, shishasimon popover esa so'rovlar statistikasini jonli ko'rsatadi.
 
-![FreeLLMAPI desktop ilovasi](repo-assets/desktop.png)
+![Zarnur desktop ilovasi](repo-assets/desktop.png)
 
 **[Releases'dan yuklab oling](https://github.com/tashfeenahmed/freellmapi/releases/latest)**: har bir relizga macOS `.dmg` va Windows `.exe` o'rnatuvchisi biriktirilgan. Akkaunt yoki parol sozlash shart emas: sizga kerak bo'ladigan yagona maxfiy ma'lumot trey popoveridagi birlashtirilgan API kaliti. Manba koddan build qilish bosqichlari va ma'lumotlaringiz qayerda saqlanishi: [docs/en/install/01-install.md#desktop-app](docs/en/install/01-install.md#desktop-app).
 
 macOS 12 Monterey yoki undan yangi versiyalar uchun **arm64 (Apple Silicon)** yoki **x64 (Intel)** ni tanlang. Ikkala Mac build'i ZIP ko'rinishida ham yuklab olinadi.
+
+## Zarnur'ni iOS yoki Android'ga o'rnatish
+
+Zarnur'ni telefoningizdan ochiladigan HTTPS manzildagi server orqali Progressive Web App (PWA) sifatida o'rnatish mumkin. Android'da Chrome orqali ochib **Install app** yoki **Add to Home screen** ni tanlang. iPhone'da Safari'dan ochib **Share → Add to Home Screen** ni bosing. Ilova serverga ulanish uchun internetni talab qiladi; provayder API kalitlarini serverdagi **Keys** sahifasida sozlang. Bu veb-ilovani o'rnatadi, App Store yoki Google Play'dagi native paket emas.
+
+## Zarnur AI'ni internet orqali ulashish (BYOK)
+
+Vitrinadagi **Zarnur AI chatini ochish** tugmasi `/chat` sahifasini ochadi. Tashrif buyuruvchi o'z API kalitini kiritib, Zarnur'dan foydalanishi mumkin. Kalit sahifa xotirasida turadi, tanlangan provayderga server orqali yuboriladi va Zarnur'da saqlanmaydi. Suhbat tarixi ham vaqtinchalik. Custom endpointlar va kalitsiz provayderlar ochiq chatda ko'rsatilmaydi; har bir IP manzil uchun daqiqasiga 10 ta so'rov limiti bor. Provayderning o'z limitlari va foydalanish shartlari ham amal qiladi. API kalit olish bo'yicha batafsil [o'zbekcha PDF qo'llanma](client/public/zarnur-qollanma.pdf) mavjud.
+
+Birinchi marta o'zingiz dashboard akkauntini sozlang — bu akkaunt admin bo'ladi. Admin paneldagi `/admin` sahifasida rozilik bergan tashrifchilar soni, AI'dan foydalanganlar, umumiy qurilma turi va OS, hamda tashrifchilar bilan yordam chatlari ko'rinadi. Aniq telefon modeli, IP-manzil va API kalitlari ushbu hisoblagichda saqlanmaydi; kuzatuv rozilik asosida ishlaydi. Bu o'zgarish `/v1` API'ni ko'p foydalanuvchili qilmaydi: dashboard loginini yoki serverda saqlangan kalitlarni ulashmang. Ommaviy BYOK chat va API bir Node serverda ishlaydi, shuning uchun faqat statik hosting yetarli emas.
+
+### Railway'da joylashtirish
+
+Repo ildizidagi `Dockerfile` veb-ilova va API'ni birga build qiladi. Railway'da ushbu GitHub repo asosida loyiha oching, bitta servis/replica ishlating va SQLite bazasi uchun `/app/server/data` yo'liga doimiy disk ulang. HTTPS link olish uchun Railway domain yarating. Servis o'zgaruvchilarini quyidagicha sozlang:
+
+- `ENCRYPTION_KEY`: 64 ta hexadecimal belgidan iborat, tasodifiy va doimiy qiymat; kalitlarni saqlagandan keyin uni almashtirmang.
+- `TRUST_PROXY`: `1` — Railway uzatgan foydalanuvchi IP manzilini rate-limit uchun ishlatadi.
+- `ALLOWED_HOSTS`: `${{RAILWAY_PUBLIC_DOMAIN}}` — yaratilgan Railway hostiga ruxsat beradi va DNS-rebinding himoyasini yoqib turadi.
+
+`PORT` ni Railway o'zi beradi. Ommaviy vitrina `/`, AI chat esa `/chat` manzilida. Railway akkaunti va doimiy disk narxlarini deploy qilishdan oldin tekshiring. Qolgan dashboard va `/v1` API egasining bitta akkaunti bilan himoyalangan.
+
+Deploy tugagach, Railway'dan **Generate Domain** qilib berilgan `https://...` manzilni oching — boshqa Wi-Fi yoki telefondan ham shu havola bilan kirasiz. Havolani hammaga yuborishdan oldin birinchi admin akkauntini yarating: sahifa so'raganda Railway servis loglaridagi bir martalik setup kodini kiriting. So'ng admin panel uchun `https://.../admin`, AI chat uchun `https://.../chat` ni ishlating. Hozirgi repoda Railway akkaunti ulanmaganligi sababli hali tayyor public URL yo'q.
 
 ## OpenAI bilan mos klientlar
 
@@ -201,7 +223,7 @@ yoki MCP URL'da bo'lmasligi kerak. **[ChatGPT'ni sozlash →](docs/en/clients/01
 
 Provayder kalitlarini terminaldan ham boshqarish mumkin, buning uchun dashboard sessiya tokeni kerak (`FREELLMAPI_DASHBOARD_TOKEN` yoki `--token`): `npx freellmapi keys add|list|remove|test <platform>`, bunda `keys test` saqlangan kalitlarni qayta tekshiradi. [cli/README.md](cli/README.md#provider-keys) ga qarang.
 
-FreeLLMAPI ataylab lokal va bir foydalanuvchili qilib yaratilgan. Provayder kalitlaringiz SQLite bazangizda shifrlangan holda qoladi, so'rovlar esa sizning kompyuteringizdan to'g'ridan-to'g'ri siz yoqqan provayderlarga boradi.
+Zarnur ataylab lokal va bir foydalanuvchili qilib yaratilgan. Provayder kalitlaringiz SQLite bazangizda shifrlangan holda qoladi, so'rovlar esa sizning kompyuteringizdan to'g'ridan-to'g'ri siz yoqqan provayderlarga boradi.
 
 ## Tillar
 
@@ -342,7 +364,7 @@ Hissa qo'shuvchilarni juda mamnuniyat bilan kutamiz! Ishlab chiqish jarayoni, PR
 - **Dashboard'ni sayqallash**: Analitika sahifasidagi grafiklar, kalitlarni almashtirish UX'i, `.env` dan kalitlarni ommaviy import qilish.
 - **Hujjatlar**: ko'proq misollar, Go/Rust va boshqa tillar uchun klient kutubxonasi parchalari, Docker yoki Fly uchun deploy retsepti.
 
-`npm install && npm run dev` serverni :3001 portida va dashboard'ni :5173 portida ishga tushiradi, ikkalasi ham HMR bilan. Takrorlanadigan sozlash uchun Bash'da `./scripts/dev-bootstrap.sh` yoki PowerShell'da `.\scripts\dev-bootstrap.ps1` dan foydalaning; ikkalasi ham mavjud `.env` ni saqlab qoladi. PR'larda test bo'lishi, mavjud testlar to'liq o'tishi (`npm test`) va repodagi `.editorconfig` / tsconfig sozlamalariga mos kelishi kerak. Ma'lumotlar bazasi migratsiyalari va hissa qo'shishning to'liq jarayoni [CONTRIBUTING.md](./CONTRIBUTING.md) da.
+`npm install && npm run dev` serverni :3001 portida va dashboard'ni :5173 portida ishga tushiradi, ikkalasi ham HMR bilan. Client lokal tarmoqda ham ochiladi: kompyuterda `http://localhost:5173`, telefonda esa shu ishonchli Wi-Fi tarmog‘iga ulanib, Vite terminalda ko‘rsatgan `Network` manzilini (kompyuter IP manzili va `:5173`) oching. Telefonda `localhost` telefonning o‘ziga ishora qiladi. Takrorlanadigan sozlash uchun Bash'da `./scripts/dev-bootstrap.sh` yoki PowerShell'da `.\scripts\dev-bootstrap.ps1` dan foydalaning; ikkalasi ham mavjud `.env` ni saqlab qoladi. PR'larda test bo'lishi, mavjud testlar to'liq o'tishi (`npm test`) va repodagi `.editorconfig` / tsconfig sozlamalariga mos kelishi kerak. Ma'lumotlar bazasi migratsiyalari va hissa qo'shishning to'liq jarayoni [CONTRIBUTING.md](./CONTRIBUTING.md) da.
 
 ### Hissa qo'shganlar
 
@@ -522,7 +544,7 @@ Hissa qo'shuvchilarni juda mamnuniyat bilan kutamiz! Ishlab chiqish jarayoni, PR
 
 ## Ogohlantirish
 
-**Bu loyiha production uchun emas, shaxsiy tajriba va o'rganish uchun.** Bepul tariflar dasturchilar ular ustida prototip yasashi uchun mavjud; ular barqaror, qo'llab-quvvatlanadigan inference asosi emas va shunday deb qaralmasligi kerak. Agar FreeLLMAPI ustida jiddiy biror narsa qursangiz, uni ishga tushirishdan oldin pullik API'ga o'ting. Har bir provayder bilan munosabatlaringiz akkaunt ochganingizda qabul qilgan shartlar bilan belgilanadi. Trafik ushbu loyiha orqali proksi qilinganda ham bu shartlar amal qiladi va ularga rioya qilish sizning zimmangizda.
+**Bu loyiha production uchun emas, shaxsiy tajriba va o'rganish uchun.** Bepul tariflar dasturchilar ular ustida prototip yasashi uchun mavjud; ular barqaror, qo'llab-quvvatlanadigan inference asosi emas va shunday deb qaralmasligi kerak. Agar Zarnur ustida jiddiy biror narsa qursangiz, uni ishga tushirishdan oldin pullik API'ga o'ting. Har bir provayder bilan munosabatlaringiz akkaunt ochganingizda qabul qilgan shartlar bilan belgilanadi. Trafik ushbu loyiha orqali proksi qilinganda ham bu shartlar amal qiladi va ularga rioya qilish sizning zimmangizda.
 
 Har bir provayderning foydalanish shartlari shaxsiy, bir foydalanuvchili proksiga qanday qarashi 2026-yil may oyida provayderma-provayder ko'rib chiqilgan, natijalari [docs/en/architecture/00-high-level-index.md#terms-of-service-review](docs/en/architecture/00-high-level-index.md#terms-of-service-review) da.
 

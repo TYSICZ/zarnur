@@ -1,12 +1,18 @@
-# FreeLLMAPI Desktop
+# Zarnur Desktop
 
 Lean Electron menu-bar app for [freellmapi](https://github.com/tashfeenahmed/freellmapi):
 runs the whole router locally on `127.0.0.1:31415`, with a dark-glass tray
 popover (live 24h request chart, quick stats, copy URL/key) and the full
 dashboard in a native-feeling window.
 
-Download an installer from [Releases](https://github.com/tashfeenahmed/freellmapi/releases/latest),
+Download the Windows installer from [Releases](https://github.com/tashfeenahmed/freellmapi/releases/latest),
 or build against the server and client sources in this checkout.
+
+On Windows, install `Zarnur-Setup-<version>.exe` once. Afterward, open Zarnur
+from the Start menu or desktop shortcut; it starts the local server and opens
+the assistant without needing a terminal or a separate localhost command.
+Opening Zarnur again while it is already running brings the assistant window
+back to the front.
 
 On macOS, choose **arm64** for Apple Silicon (M-series) or **x64** for Intel.
 Both require **macOS 12 Monterey or later**. Each architecture has a DMG
@@ -26,9 +32,9 @@ From the **repo root** (one-time client build + package):
 ```bash
 npm install
 npm install --prefix desktop  # install desktop dependencies
-npm run desktop:dist          # macOS → desktop/dist-electron/FreeLLMAPI-…-macos-arm64.dmg
-npm run desktop:dist:mac:x64  # Intel Mac → desktop/dist-electron/FreeLLMAPI-…-macos-x64.dmg
-npm run desktop:dist:win      # Windows → desktop/dist-electron/FreeLLMAPI-Setup-….exe
+npm run desktop:dist          # macOS → desktop/dist-electron/Zarnur-…-macos-arm64.dmg
+npm run desktop:dist:mac:x64  # Intel Mac → desktop/dist-electron/Zarnur-…-macos-x64.dmg
+npm run desktop:dist:win      # Windows → desktop/dist-electron/Zarnur-Setup-….exe
 ```
 
 Both Mac commands also produce a ZIP. Prefer building on the matching Mac
@@ -65,7 +71,8 @@ open for real-screen captures.
 ## Notes
 
 - DB + config live in `~/Library/Application Support/FreeLLMAPI/` (macOS) /
-  `%APPDATA%/FreeLLMAPI/` (Windows).
+  `%APPDATA%/FreeLLMAPI/` (Windows). This legacy folder name is retained so
+  existing installs keep their settings and provider keys after upgrading.
 - The server binds loopback only; default port 31415, scan-up on conflict,
   resolved port persisted.
 - Do not run plain `npm rebuild` here — it rebuilds better-sqlite3 for the

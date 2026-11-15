@@ -31,6 +31,10 @@ import { toast } from '@/lib/toast'
 import { ThemeProvider } from '@/theme'
 import KeysPage from '@/pages/KeysPage'
 import PlaygroundPage from '@/pages/PlaygroundPage'
+import JewelryLandingPage from '@/pages/JewelryLandingPage'
+import PublicChatPage from '@/pages/PublicChatPage'
+import ZarnurAdminPage from '@/pages/ZarnurAdminPage'
+import ZarnurSupportChat from '@/components/ZarnurSupportChat'
 import FallbackPage from '@/pages/FallbackPage'
 import ModelDetailPage from '@/pages/ModelDetailPage'
 import FusionPage from '@/pages/FusionPage'
@@ -71,10 +75,11 @@ const queryClient = new QueryClient({
 
 const navItems = [
   { to: '/models', labelKey: 'nav.models' },
-  { to: '/playground', labelKey: 'nav.playground' },
+  { to: '/playground', labelKey: 'nav.playground', label: 'Zarnur' },
   { to: '/keys', labelKey: 'nav.keys' },
   { to: '/agents', labelKey: 'nav.agents' },
   { to: '/analytics', labelKey: 'nav.analytics' },
+  { to: '/admin', labelKey: 'nav.analytics', label: 'Admin paneli' },
   { to: '/premium', labelKey: 'nav.premium' },
 ]
 
@@ -142,7 +147,7 @@ function Brand() {
   return (
     <Link to="/" className="flex items-center gap-2 transition-opacity hover:opacity-70">
       <span className="inline-block size-2 rounded-full bg-foreground" />
-      <span className="font-semibold tracking-tight text-sm">FreeLLMAPI</span>
+      <span className="font-semibold tracking-tight text-sm">Zarnur</span>
     </Link>
   )
 }
@@ -280,7 +285,7 @@ function Navbar() {
                 // Split control: the label navigates, the chevron reveals the
                 // pages hiding behind it.
                 <div key={item.to} className="flex items-center gap-0.5">
-                  <NavItem to={item.to}>{t(item.labelKey)}</NavItem>
+                  <NavItem to={item.to}>{item.label ?? t(item.labelKey)}</NavItem>
                   <DropdownMenu>
                     <DropdownMenuTrigger
                       aria-label={t(menu.ariaKey)}
@@ -299,7 +304,7 @@ function Navbar() {
                 </div>
               ) : (
                 <NavItem key={item.to} to={item.to}>
-                  {t(item.labelKey)}
+                  {item.label ?? t(item.labelKey)}
                 </NavItem>
               )
             })}
@@ -359,7 +364,7 @@ function Navbar() {
                         <DropdownMenuSubTrigger
                           className={menu.isActive(location.pathname) ? 'bg-accent text-accent-foreground font-medium' : undefined}
                         >
-                          {t(item.labelKey)}
+                          {item.label ?? t(item.labelKey)}
                         </DropdownMenuSubTrigger>
                         <DropdownMenuSubContent>
                           {menu.items.map((entry) => (
@@ -375,7 +380,7 @@ function Navbar() {
                         onClick={() => navigate(item.to)}
                         className={location.pathname === item.to ? 'bg-accent text-accent-foreground font-medium' : undefined}
                       >
-                        {t(item.labelKey)}
+                        {item.label ?? t(item.labelKey)}
                       </DropdownMenuItem>
                     )
                   })}
@@ -461,57 +466,81 @@ function AppShell({ children }: { children: ReactNode }) {
   )
 }
 
+function AppRoutes() {
+  const location = useLocation()
+  if (location.pathname === '/') {
+    return (
+      <div className={`min-h-screen ${isMacDesktop ? 'desktop-backdrop' : 'bg-background'}`}>
+        <JewelryLandingPage />
+        <ZarnurSupportChat />
+      </div>
+    )
+  }
+  if (location.pathname === '/chat') {
+    return (
+      <>
+        <PublicChatPage />
+        <ZarnurSupportChat />
+      </>
+    )
+  }
+
+  return (
+    <AuthGate>
+      {/* Column, so a full-bleed route can claim the height the navbar
+          leaves without anyone having to know how tall the navbar is.
+          Fixed-position children (toaster, palette, reminder) are out of
+          flow, and a padded route stretches to nothing it can show. */}
+      <AppShell>
+        <Navbar />
+        <PageContainer>
+          <PageBoundary>
+            <Routes>
+              <Route path="/models" element={<Navigate to="/models/chat" replace />} />
+              <Route path="/models/chat" element={<FallbackPage />} />
+              <Route path="/models/chat/:id" element={<ModelDetailPage />} />
+              <Route path="/models/fusion" element={<FusionPage />} />
+              <Route path="/models/embeddings" element={<EmbeddingsPage />} />
+              <Route path="/models/embeddings/:id" element={<EmbeddingDetailPage />} />
+              <Route path="/models/image" element={<ImagePage />} />
+              <Route path="/models/image/:id" element={<MediaDetailPage modality="image" />} />
+              <Route path="/models/video" element={<VideoPage />} />
+              <Route path="/models/video/:id" element={<MediaDetailPage modality="video" />} />
+              <Route path="/models/audio" element={<AudioPage />} />
+              <Route path="/models/audio/:id" element={<MediaDetailPage modality="audio" />} />
+              <Route path="/models/transcription/:id" element={<MediaDetailPage modality="transcription" />} />
+              <Route path="/models/search" element={<SearchPage />} />
+              <Route path="/models/decision" element={<DecisionPage />} />
+              <Route path="/playground" element={<PlaygroundPage />} />
+              <Route path="/keys" element={<KeysPage />} />
+              <Route path="/agents" element={<AgentsPage />} />
+              <Route path="/fallback" element={<Navigate to="/models/chat" replace />} />
+              <Route path="/analytics" element={<AnalyticsPage />} />
+              <Route path="/admin" element={<ZarnurAdminPage />} />
+              <Route path="/logs" element={<LogsPage />} />
+              <Route path="/premium" element={<PremiumPage />} />
+              <Route path="/test" element={<Navigate to="/playground" replace />} />
+              <Route path="/health" element={<Navigate to="/keys" replace />} />
+              <Route path="*" element={<NotFoundPage />} />
+            </Routes>
+          </PageBoundary>
+        </PageContainer>
+        <Toaster />
+        <CommandPalette />
+        <UpdateReminder />
+        <NewBuildPrompt />
+      </AppShell>
+    </AuthGate>
+  )
+}
+
 function App() {
   return (
     <QueryClientProvider client={queryClient}>
       <ThemeProvider>
         <I18nProvider>
           <BrowserRouter basename={import.meta.env.BASE_URL}>
-            <AuthGate>
-              {/* Column, so a full-bleed route can claim the height the navbar
-                  leaves without anyone having to know how tall the navbar is.
-                  Fixed-position children (toaster, palette, reminder) are out of
-                  flow, and a padded route stretches to nothing it can show. */}
-              <AppShell>
-                <Navbar />
-                <PageContainer>
-                  <PageBoundary>
-                    <Routes>
-                      <Route path="/" element={<Navigate to="/models/chat" replace />} />
-                      <Route path="/models" element={<Navigate to="/models/chat" replace />} />
-                      <Route path="/models/chat" element={<FallbackPage />} />
-                      <Route path="/models/chat/:id" element={<ModelDetailPage />} />
-                      <Route path="/models/fusion" element={<FusionPage />} />
-                      <Route path="/models/embeddings" element={<EmbeddingsPage />} />
-                      <Route path="/models/embeddings/:id" element={<EmbeddingDetailPage />} />
-                      <Route path="/models/image" element={<ImagePage />} />
-                      <Route path="/models/image/:id" element={<MediaDetailPage modality="image" />} />
-                      <Route path="/models/video" element={<VideoPage />} />
-                      <Route path="/models/video/:id" element={<MediaDetailPage modality="video" />} />
-                      <Route path="/models/audio" element={<AudioPage />} />
-                      <Route path="/models/audio/:id" element={<MediaDetailPage modality="audio" />} />
-                      <Route path="/models/transcription/:id" element={<MediaDetailPage modality="transcription" />} />
-                      <Route path="/models/search" element={<SearchPage />} />
-                      <Route path="/models/decision" element={<DecisionPage />} />
-                      <Route path="/playground" element={<PlaygroundPage />} />
-                      <Route path="/keys" element={<KeysPage />} />
-                      <Route path="/agents" element={<AgentsPage />} />
-                      <Route path="/fallback" element={<Navigate to="/models/chat" replace />} />
-                      <Route path="/analytics" element={<AnalyticsPage />} />
-                      <Route path="/logs" element={<LogsPage />} />
-                      <Route path="/premium" element={<PremiumPage />} />
-                      <Route path="/test" element={<Navigate to="/playground" replace />} />
-                      <Route path="/health" element={<Navigate to="/keys" replace />} />
-                      <Route path="*" element={<NotFoundPage />} />
-                    </Routes>
-                  </PageBoundary>
-                </PageContainer>
-                <Toaster />
-                <CommandPalette />
-                <UpdateReminder />
-                <NewBuildPrompt />
-              </AppShell>
-            </AuthGate>
+            <AppRoutes />
           </BrowserRouter>
         </I18nProvider>
       </ThemeProvider>

@@ -1,5 +1,5 @@
 appId: com.freellmapi.desktop
-productName: FreeLLMAPI
+productName: Zarnur
 directories:
   output: dist-electron
 files:
@@ -89,7 +89,7 @@ linux:
       arch:
         - x64
 nsis:
-  # electron-builder's default NSIS name has spaces ("FreeLLMAPI Setup x.y.z.exe")
+  # electron-builder's default NSIS name has spaces ("Zarnur Setup x.y.z.exe")
   # and latest.yml records it with dashes, while GitHub stores the upload with
   # dots — so the updater asked for a file the release did not have. A name with
   # no spaces is the same string in all three places.

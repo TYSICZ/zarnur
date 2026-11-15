@@ -1,7 +1,7 @@
 {
   "name": "freellmapi-desktop",
   "version": "0.16.29",
-  "description": "FreeLLMAPI menu-bar app — local OpenAI-compatible LLM router",
+  "description": "Zarnur menu-bar app — local AI assistant powered by free-tier models",
   "author": {
     "name": "tashfeenahmed",
     "email": "tashfene@gmail.com",
@@ -40,5 +40,11 @@
     "js-yaml": "^4.3.2",
     "typescript": "^5.8.0",
     "vitest": "^3.2.4"
+  },
+  "allowScripts": {
+    "electron@38.8.6": true,
+    "esbuild@0.24.2": true,
+    "esbuild@0.28.1": true,
+    "better-sqlite3@12.10.0": true
   }
 }

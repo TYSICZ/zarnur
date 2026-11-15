@@ -1,6 +1,6 @@
 <div align="center">
 
-# FreeLLMAPI
+# Zarnur AI
 
 **10.1 billion tokens per month.  87 free LLM providers. 1,313 free model endpoints. One OpenAI-compatible endpoint.**
 
@@ -25,7 +25,7 @@ Aggregate free tiers from dozens of providers, plus custom OpenAI-compatible cha
   <a href="https://apps.apple.com/app/id6804648934"><img src="repo-assets/badges/app-store.svg" height="48" alt="Download on the App Store"></a>
 </p>
 
-![FreeLLMAPI dashboard — Models page with the monthly token budget](repo-assets/github-hero.png)
+![Zarnur AI dashboard — Models page with the monthly token budget](repo-assets/github-hero.png)
 
 
 Your router updates its own model catalog from a signed feed: new free models, quota changes, and compatibility fixes land without a `git pull`. Free installs get the monthly snapshot, so a model reaches them 30 days after it joins the live feed; premium routers get it the same day.
@@ -61,9 +61,9 @@ Your router updates its own model catalog from a signed feed: new free models, q
 
 Every serious AI lab now offers a free tier, a few million tokens a month, a few thousand requests a day. On its own each tier is a toy. Stacked together, they add up to roughly **10.1 billion tokens per month** of working inference capacity, across **736 model families / 1,313 provider endpoints** from small-and-fast to reasonably capable.
 
-The problem is that stacking them by hand is painful: eighty-seven different SDKs, eighty-seven different rate limits, eighty-seven places a request can fail. FreeLLMAPI collapses that into one OpenAI-compatible endpoint. Point any OpenAI client library at your local server, and it routes transparently across whichever providers you've added keys for.
+The problem is that stacking them by hand is painful: eighty-seven different SDKs, eighty-seven different rate limits, eighty-seven places a request can fail. Zarnur collapses that into one OpenAI-compatible endpoint. Point any OpenAI client library at your local server, and it routes transparently across whichever providers you've added keys for.
 
-And the free-tier landscape shifts weekly: providers launch models, retire them, and change quotas without notice. FreeLLMAPI tracks all of that for you. The router pulls a signed model catalog from [freellmapi.co](https://freellmapi.co) on its own, so your install keeps up without a `git pull`. See [Premium (live catalog)](#premium-live-catalog) for how fast it keeps up.
+And the free-tier landscape shifts weekly: providers launch models, retire them, and change quotas without notice. Zarnur tracks all of that for you. The router pulls a signed model catalog from [freellmapi.co](https://freellmapi.co) on its own, so your install keeps up without a `git pull`. See [Premium (live catalog)](#premium-live-catalog) for how fast it keeps up.
 
 ![The free tier, stacked — ~10.1B tokens of free inference per month across 87 providers](repo-assets/free-tier.png)
 
@@ -153,9 +153,10 @@ Based on public documentation, July 2026 — corrections welcome.
 - **Self-updating model catalog** — the router syncs a signed catalog from freellmapi.co twice a day: new models, quota changes, and provider quirk fixes land automatically. Free installs track the monthly snapshot, which each model joins 30 days after it lands in the live feed; premium routers get it same-day. [Premium →](#premium-live-catalog)
 - **Sticky sessions & context handoff** — conversations stay on one model for 30 minutes; an optional compact handoff note keeps the thread coherent when a mid-chat switch does happen. [Details →](docs/en/clients/01-agent-clients.md#context-handoff)
 - **Prompt compression (opt-in)** — a shared, fail-open request pipeline can deduplicate prompts, filter tool output, compact repeated JSON, and trim stale context before cache lookup and routing. [Details →](docs/en/compression/01-compression-pipeline.md)
+- **Zarnur AI chat** — a branded, responsive chat experience with streaming replies, saved conversations, attachments, web search, voice input, model selection, and Fusion synthesis. It uses only providers you've configured on the Keys page; no provider credentials are bundled, and free-tier quotas vary by provider.
 - **Encrypted keys, one token out** — provider keys are AES-256-GCM encrypted in SQLite and decrypted in-memory per request; your apps only ever see a single unified `freellmapi-…` bearer token.
 - **Admin dashboard & analytics** — React UI to manage keys, reorder the chain, run a playground, and read p50/p95/TTFT analytics over 24h–90d windows; login-gated, dark/light themes, [60 languages](#languages).
-- **ChatGPT-ready MCP server & interactive docs** — ChatGPT and other MCP clients can call FreeLLMAPI inference, list usable models, inspect provider health/usage/cache/routing metadata, and manage the routing strategy over `/mcp`; a dependency-free OpenAPI viewer lives at `/v1/docs`. [ChatGPT and coding agents →](docs/en/clients/01-agent-clients.md#mcp-server)
+- **ChatGPT-ready MCP server & interactive docs** — ChatGPT and other MCP clients can call Zarnur inference, list usable models, inspect provider health/usage/cache/routing metadata, and manage the routing strategy over `/mcp`; a dependency-free OpenAPI viewer lives at `/v1/docs`. [ChatGPT and coding agents →](docs/en/clients/01-agent-clients.md#mcp-server)
 - **Ops niceties** — opt-in response cache, encrypted DB backups, periodic key health checks, bulk key import/export, declarative startup config. [Install & deploy →](docs/en/install/01-install.md)
 - **Runs anywhere Node 20+ runs** — Windows, macOS, Linux servers, or a small ARM SBC (Raspberry Pi included). ~40 MB RSS at idle behind PM2 / systemd / whatever supervisor you prefer.
 
@@ -181,11 +182,35 @@ Everything else — Docker Compose, local development, declarative startup confi
 
 A native menu-bar app lives in [`desktop/`](./desktop): the entire router + dashboard running locally from your tray, with a glass popover showing live request stats.
 
-![FreeLLMAPI desktop app](repo-assets/desktop.png)
+![Zarnur desktop app](repo-assets/desktop.png)
 
 **[Download from Releases](https://github.com/tashfeenahmed/freellmapi/releases/latest)** — the macOS `.dmg` and the Windows `.exe` installer are attached to every release. No account or password to set up: the only credential you need is the unified API key from the tray popover. Build-from-source steps and where your data lives: [docs/en/install/01-install.md#desktop-app](docs/en/install/01-install.md#desktop-app).
 
 For macOS 12 Monterey or later, choose **arm64 (Apple Silicon)** or **x64 (Intel)**. Both Mac builds also include a ZIP download.
+
+## Install Zarnur on a phone
+
+Zarnur can be installed as a Progressive Web App from an HTTPS deployment reachable by your phone. On Android, open it in Chrome and choose **Install app** (or **Add to Home screen**). On iPhone, open it in Safari, tap **Share**, then **Add to Home Screen**. The app needs a network connection to reach your Zarnur server; configure provider API keys on that server's **Keys** page. This installs the web app, not an App Store or Google Play native package.
+
+## Public Zarnur chat (BYOK)
+
+The storefront's **Zarnur AI chatini ochish** button opens `/chat`, a public chat that visitors can use with their own API key. The key stays in that browser tab's memory, is sent only to the selected built-in provider through this server, and is not saved by Zarnur. The chat transcript is also temporary. Custom endpoints and keyless providers are not exposed; requests are limited to 10 per minute per IP. Provider account limits and terms still apply.
+
+This does not make the admin dashboard or the `/v1` proxy multi-user: keep those private and never share your dashboard login or server-stored provider keys. The public BYOK page is served by the same Node server as the API, so static-only hosting is not sufficient.
+
+The first-run dashboard account is the owner/admin account; complete setup yourself before sharing the public URL. The public pages offer optional consent-based, anonymous visitor counts, broad device/OS categories, and a support chat with the admin inbox at `/admin`. Exact phone models, IP addresses, and API keys are not stored in this visitor tracker. The Uzbek API-key walkthrough is available as [Zarnur's PDF guide](client/public/zarnur-qollanma.pdf).
+
+### Deploying on Railway
+
+The repository's root `Dockerfile` builds the web app and API together. In Railway, create a project from this GitHub repository, use one service/replica, and attach a persistent volume mounted at `/app/server/data` (the SQLite database lives there). Generate a Railway domain for the HTTPS link. Set these service variables:
+
+- `ENCRYPTION_KEY`: a persistent random 64-character hexadecimal value; do not rotate it after storing provider keys.
+- `TRUST_PROXY`: `1`, so the server uses Railway's forwarded client IP for rate limits.
+- `ALLOWED_HOSTS`: `${{RAILWAY_PUBLIC_DOMAIN}}`, to allow the generated host while keeping the DNS-rebinding guard enabled.
+
+Railway supplies `PORT` automatically. The public storefront is at `/` and the public BYOK chat at `/chat`. Railway account and volume pricing are controlled by Railway; review them before deploying. The remaining dashboard and `/v1` routes still require the single owner account.
+
+After deployment, generate a Railway domain and open its `https://...` URL from any Wi-Fi or phone. Before sharing it, create the first owner/admin account using the one-time setup code in the service logs. The owner dashboard is at `/admin`; public chat is at `/chat`. This repository is not connected to a Railway account yet, so no live public URL exists until an owner deploys it.
 
 ## Works with OpenAI-compatible clients
 
@@ -200,7 +225,7 @@ MCP URL. **[ChatGPT setup →](docs/en/clients/01-agent-clients.md#chatgpt-priva
 
 Provider keys can be managed from the terminal too, with a dashboard session token (`FREELLMAPI_DASHBOARD_TOKEN` or `--token`): `npx freellmapi keys add|list|remove|test <platform>`, where `keys test` re-checks stored keys. See [cli/README.md](cli/README.md#provider-keys).
 
-FreeLLMAPI is local-first and single-user by design. Your provider keys stay in your SQLite database, encrypted at rest, and requests go from your machine to the upstream providers you enabled.
+Zarnur is local-first and single-user by design. Your provider keys stay in your SQLite database, encrypted at rest, and requests go from your machine to the upstream providers you enabled.
 
 ## Languages
 
@@ -340,7 +365,7 @@ Contributors very welcome! See [CONTRIBUTING.md](CONTRIBUTING.md) for the dev lo
 - **Dashboard polish** — charts on the Analytics page, key rotation UX, batch import of keys from `.env`.
 - **Docs** — more examples, client library snippets for Go/Rust/etc., a deployment recipe for Docker or Fly.
 
-`npm install && npm run dev` gets you the server on :3001 and the dashboard on :5173, both with HMR. For a repeatable setup, use `./scripts/dev-bootstrap.sh` on Bash or `.\scripts\dev-bootstrap.ps1` on PowerShell; each preserves an existing `.env`. PRs should include a test, keep the existing suite green (`npm test`), and match the `.editorconfig` / tsconfig defaults already in the repo. Database migration workflow and the full contributor loop are in [CONTRIBUTING.md](./CONTRIBUTING.md).
+`npm install && npm run dev` gets you the server on :3001 and the dashboard on :5173, both with HMR. The client listens on the local network too: use `http://localhost:5173` on this computer, and the Vite `Network` URL (your computer's IP with port 5173) on a phone connected to the same trusted Wi-Fi. `localhost` on a phone means the phone itself. For a repeatable setup, use `./scripts/dev-bootstrap.sh` on Bash or `.\scripts\dev-bootstrap.ps1` on PowerShell; each preserves an existing `.env`. PRs should include a test, keep the existing suite green (`npm test`), and match the `.editorconfig` / tsconfig defaults already in the repo. Database migration workflow and the full contributor loop are in [CONTRIBUTING.md](./CONTRIBUTING.md).
 
 ### Contributors
 
@@ -520,7 +545,7 @@ Contributors very welcome! See [CONTRIBUTING.md](CONTRIBUTING.md) for the dev lo
 
 ## Disclaimer
 
-**This project is for personal experimentation and learning, not production.** Free tiers exist so developers can prototype against them; they aren't a stable, supported inference substrate and shouldn't be treated as one. If you build something real on top of FreeLLMAPI, swap in a paid API before you ship. Your relationship with each upstream provider is governed by the terms you accepted when you created your account — those terms still apply when the traffic is proxied through this project, and you're responsible for complying with them.
+**This project is for personal experimentation and learning, not production.** Free tiers exist so developers can prototype against them; they aren't a stable, supported inference substrate and shouldn't be treated as one. If you build something real on top of Zarnur, swap in a paid API before you ship. Your relationship with each upstream provider is governed by the terms you accepted when you created your account — those terms still apply when the traffic is proxied through this project, and you're responsible for complying with them.
 
 How each provider's ToS views a personal, single-user proxy — reviewed provider by provider in May 2026 — is in [docs/en/architecture/00-high-level-index.md#terms-of-service-review](docs/en/architecture/00-high-level-index.md#terms-of-service-review).
 
