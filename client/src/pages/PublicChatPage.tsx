@@ -12,7 +12,6 @@ interface Message {
 }
 
 const BASE = import.meta.env.BASE_URL.replace(/\/$/, '')
-const MODEL_KEY = (model: PublicModel) => JSON.stringify([model.access, model.platform, model.modelId, model.modelDbId])
 const SUGGESTIONS = [
   'Instagram uchun zargarlik posti yoz',
   'Mijozga muloyim javob tayyorla',
@@ -55,7 +54,6 @@ export default function PublicChatPage() {
   const secureChatAllowed = window.isSecureContext
   const [models, setModels] = useState<PublicModel[]>([])
   const [account, setAccount] = useState<{ email: string; role: string } | null>(null)
-  const [modelKey, setModelKey] = useState('')
   const [messages, setMessages] = useState<Message[]>([])
   const [draft, setDraft] = useState('')
   const [loadingModels, setLoadingModels] = useState(true)
@@ -64,8 +62,8 @@ export default function PublicChatPage() {
   const endRef = useRef<HTMLDivElement>(null)
 
   const selectedModel = useMemo(
-    () => models.find(model => MODEL_KEY(model) === modelKey),
-    [models, modelKey],
+    () => choosePreferredZarnurModel(models),
+    [models],
   )
 
   useEffect(() => {
@@ -136,8 +134,6 @@ export default function PublicChatPage() {
       if (controller.signal.aborted) return
       const availableModels = [...memberModels, ...guestModels]
       setModels(availableModels)
-      const preferredModel = choosePreferredZarnurModel(availableModels)
-      if (preferredModel) setModelKey(MODEL_KEY(preferredModel))
       if (availableModels.length === 0 && guestError) setError(guestError)
       setLoadingModels(false)
     }
@@ -164,11 +160,11 @@ export default function PublicChatPage() {
 
     try {
       let payload: unknown
-      if (selectedModel.access === 'member' && selectedModel.modelDbId !== undefined) {
+      if (selectedModel.access === 'automatic') {
         payload = await apiFetch<unknown>('/api/member/chat/completions', {
           method: 'POST',
           body: JSON.stringify({
-            modelDbId: selectedModel.modelDbId,
+            automatic: true,
             messages: nextMessages.slice(-20),
           }),
         })
@@ -219,45 +215,20 @@ export default function PublicChatPage() {
         </div>
       </header>
 
-      <section className="mx-auto grid w-full max-w-4xl shrink-0 gap-3 px-4 py-4 sm:grid-cols-[minmax(0,1fr)_minmax(0,1.3fr)] sm:px-6">
-        <label className="grid gap-1.5 text-xs font-medium">
-          AI modeli
-          <select
-            value={modelKey}
-            onChange={event => setModelKey(event.target.value)}
-            disabled={loadingModels || models.length === 0 || sending}
-            className="h-10 min-w-0 rounded-lg border bg-background px-3 text-sm font-normal outline-none focus-visible:ring-2 focus-visible:ring-ring"
-          >
-            {loadingModels && <option value="">Modellar yuklanmoqda…</option>}
-            {!loadingModels && models.length === 0 && <option value="">Model hozircha mavjud emas</option>}
-            {models.some(model => model.access === 'member') && (
-              <optgroup label="Administrator ulashgan modellar">
-                {models.filter(model => model.access === 'member').map(model => (
-                  <option key={MODEL_KEY(model)} value={MODEL_KEY(model)}>
-                    {model.displayName} · {model.provider}
-                  </option>
-                ))}
-              </optgroup>
-            )}
-            {models.some(model => model.access === 'guest') && (
-              <optgroup label="Mehmonlar uchun bepul modellar">
-                {models.filter(model => model.access === 'guest').map(model => (
-                  <option key={MODEL_KEY(model)} value={MODEL_KEY(model)}>
-                    {model.displayName}
-                  </option>
-                ))}
-              </optgroup>
-            )}
-          </select>
-        </label>
-
+      <section className="mx-auto w-full max-w-4xl shrink-0 px-4 py-4 sm:px-6">
         <div className="flex items-center rounded-xl border bg-card px-4 py-3">
           <div>
-            <p className="text-sm font-medium">{selectedModel?.access === 'member' ? 'Server modeli' : 'API kaliti kerak emas'}</p>
+            <p className="text-sm font-medium">
+              {loadingModels
+                ? 'AI modellar yuklanmoqda…'
+                : selectedModel?.access === 'automatic'
+                  ? 'Administrator boshqaradigan avtomatik model'
+                  : 'Mehmonlar uchun bepul model'}
+            </p>
             <p className="mt-1 text-xs text-muted-foreground">
-              {selectedModel?.access === 'member'
-                ? 'Ulangan hisoblar uchun kuniga 30 ta xabargacha. Provayder kvotasi ham amal qiladi.'
-                : 'Mehmonlar uchun umumiy soatlik limit mavjud.'}
+              {selectedModel?.access === 'automatic'
+                ? 'Administrator yoqqan va ulashgan Google, Groq, Cloudflare hamda boshqa modellar avtomatik ishlatiladi; foydalanuvchilar tanlamaydi.'
+                : 'API kaliti kerak emas. Mehmonlar uchun umumiy soatlik limit mavjud.'}
             </p>
           </div>
         </div>
@@ -275,7 +246,7 @@ export default function PublicChatPage() {
             </div>
             <h1 className="mt-4 text-xl font-semibold">Salom, men Zarnur.</h1>
             <p className="mt-2 max-w-md text-sm text-muted-foreground">
-              O‘zbekcha yozsangiz, javobni o‘zbekcha berishga harakat qilaman. Hisobga kirgach, administrator ulashgan Google AI Studio va Groq modellari tanlovda ko‘rinadi.
+              O‘zbekcha savollaringizga o‘zbekcha javob berishga harakat qilaman. Hisobga kirgach, administrator yoqqan va ulashgan AI modellari orasida avtomatik yo‘naltiraman.
             </p>
             {models.length > 0 && (
               <div className="mt-6 flex max-w-xl flex-wrap justify-center gap-2">
@@ -326,7 +297,7 @@ export default function PublicChatPage() {
 
       {account && !models.some(model => model.access === 'member') && (
         <p className="mx-auto w-full max-w-4xl px-4 pb-2 text-xs text-muted-foreground sm:px-6">
-          Google AI Studio yoki Groq ko‘rinmasa, administrator /admin sahifasida tegishli kalit uchun “Ulashish”ni yoqishi kerak.
+          Umumiy AI modeli yo‘q. Administrator /admin sahifasida kerakli kalitni yoqib, “Ulashish”ni belgilashi kerak.
         </p>
       )}
 

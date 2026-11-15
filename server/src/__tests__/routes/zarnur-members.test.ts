@@ -135,7 +135,7 @@ describe('Zarnur member accounts and shared models', () => {
       'shared-provider-secret',
       [expect.objectContaining({ role: 'system' }), { role: 'user', content: 'Salom' }],
       model.model_id,
-      { max_tokens: 512, temperature: undefined },
+      { max_tokens: 512, temperature: 0.2 },
     );
     expect(JSON.stringify(response.body)).not.toContain('private-provider-secret');
     expect(JSON.stringify(response.body)).not.toContain('shared-provider-secret');
@@ -146,5 +146,56 @@ describe('Zarnur member accounts and shared models', () => {
     expect(keys.body).toEqual(expect.arrayContaining([
       expect.objectContaining({ id: privateKeyId, shareWithMembers: true }),
     ]));
+  });
+
+  it('automatically fails over from Google to Groq when a shared provider is unavailable', async () => {
+    const user = createUser('zarnur-auto-member@example.com', 'member-password', 'user');
+    const token = createSession(user.userId);
+    const models = getDb().prepare(`
+      SELECT id, platform, model_id
+        FROM models
+       WHERE enabled = 1 AND platform IN ('google', 'groq')
+       ORDER BY CASE platform WHEN 'google' THEN 0 ELSE 1 END, display_name
+    `).all() as Array<{ id: number; platform: string; model_id: string }>;
+    const googleModel = models.find(model => model.platform === 'google');
+    const groqModel = models.find(model => model.platform === 'groq');
+    if (!googleModel || !groqModel) throw new Error('Expected enabled Google and Groq chat models');
+
+    for (const model of [googleModel, groqModel]) {
+      getDb().prepare(`
+        UPDATE models
+           SET rpm_limit = NULL, rpd_limit = NULL, tpm_limit = NULL, tpd_limit = NULL
+         WHERE id = ?
+      `).run(model.id);
+      const encrypted = encrypt(`${model.platform}-shared-secret`);
+      getDb().prepare(`
+        INSERT INTO api_keys (platform, label, encrypted_key, iv, auth_tag, status, enabled, share_with_members)
+        VALUES (?, ?, ?, ?, ?, 'healthy', 1, 1)
+      `).run(model.platform, `${model.platform}-auto-key`, encrypted.encrypted, encrypted.iv, encrypted.authTag);
+    }
+
+    const googleProvider = getAllProviders().find(provider => provider.platform === 'google');
+    const groqProvider = getAllProviders().find(provider => provider.platform === 'groq');
+    if (!googleProvider || !groqProvider) throw new Error('Expected Google and Groq providers');
+    vi.spyOn(googleProvider, 'chatCompletion').mockRejectedValue(
+      Object.assign(new Error('Provider quota exceeded'), { status: 429 }),
+    );
+    const result: ChatCompletionResponse = {
+      id: 'automatic-member-test',
+      object: 'chat.completion',
+      created: 1,
+      model: groqModel.model_id,
+      choices: [{ index: 0, message: { role: 'assistant', content: 'Salom!' }, finish_reason: 'stop' }],
+    };
+    const groqCompletion = vi.spyOn(groqProvider, 'chatCompletion').mockResolvedValue(result);
+
+    const response = await call(app, 'POST', '/api/member/chat/completions', {
+      automatic: true,
+      messages: [{ role: 'user', content: 'Salom' }],
+    }, token);
+
+    expect(response.status).toBe(200);
+    expect(response.body).toEqual(result);
+    expect(groqCompletion).toHaveBeenCalled();
   });
 });

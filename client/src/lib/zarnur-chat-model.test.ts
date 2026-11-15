@@ -13,22 +13,18 @@ function model(platform: string, access: ZarnurChatModel['access'], modelId = `$
 }
 
 describe('choosePreferredZarnurModel', () => {
-  it('prefers an administrator-shared Google model, then Groq, before guest models', () => {
+  it('uses automatic routing when administrator-shared models are available', () => {
     const groq = model('groq', 'member')
     const guest = model('kilo', 'guest')
     const google = model('google', 'member')
 
-    expect(choosePreferredZarnurModel([groq, guest, google])).toBe(google)
+    expect(choosePreferredZarnurModel([groq, guest, google])).toMatchObject({
+      access: 'automatic',
+      platform: 'automatic',
+    })
   })
 
-  it('uses shared Groq when Google is not shared', () => {
-    const groq = model('groq', 'member')
-    const guest = model('kilo', 'guest')
-
-    expect(choosePreferredZarnurModel([guest, groq])).toBe(groq)
-  })
-
-  it('keeps the recommended guest model as the fallback when no member model is shared', () => {
+  it('uses the recommended guest model when no shared models are available', () => {
     const fallback = model('kilo', 'guest')
     const recommended = model('kilo', 'guest', 'nvidia/nemotron-3.5-lightning:free')
 
