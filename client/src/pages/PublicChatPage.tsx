@@ -1,12 +1,15 @@
 import { useEffect, useMemo, useRef, useState, type FormEvent } from 'react'
-import { ArrowLeft, ArrowUp, LoaderCircle, RotateCcw, Sparkles } from 'lucide-react'
+import { ArrowLeft, ArrowUp, Clapperboard, LoaderCircle, RotateCcw, Sparkles } from 'lucide-react'
 import { Link } from 'react-router-dom'
+import { apiFetch } from '@/lib/api'
 
 interface PublicModel {
   platform: string
   provider: string
   modelId: string
   displayName: string
+  access: 'guest' | 'member'
+  modelDbId?: number
 }
 
 interface Message {
@@ -15,7 +18,7 @@ interface Message {
 }
 
 const BASE = import.meta.env.BASE_URL.replace(/\/$/, '')
-const MODEL_KEY = (model: PublicModel) => JSON.stringify([model.platform, model.modelId])
+const MODEL_KEY = (model: PublicModel) => JSON.stringify([model.access, model.platform, model.modelId, model.modelDbId])
 const DEFAULT_MODEL_ID = 'nvidia/nemotron-3.5-lightning:free'
 const SUGGESTIONS = [
   'Instagram uchun zargarlik posti yoz',
@@ -58,6 +61,7 @@ function chatError(reason: unknown): string {
 export default function PublicChatPage() {
   const secureChatAllowed = window.isSecureContext
   const [models, setModels] = useState<PublicModel[]>([])
+  const [account, setAccount] = useState<{ email: string; role: string } | null>(null)
   const [modelKey, setModelKey] = useState('')
   const [messages, setMessages] = useState<Message[]>([])
   const [draft, setDraft] = useState('')
@@ -73,32 +77,81 @@ export default function PublicChatPage() {
 
   useEffect(() => {
     const controller = new AbortController()
-    fetch(`${BASE}/api/public/chat/models`, { signal: controller.signal })
-      .then(async response => {
+    async function loadModels() {
+      let guestModels: PublicModel[] = []
+      let guestError = ''
+      try {
+        const response = await fetch(`${BASE}/api/public/chat/models`, { signal: controller.signal })
         const payload: unknown = await response.json()
         if (!response.ok) throw new Error(errorMessage(payload, 'Modellarni yuklab bo‘lmadi.'))
         if (!isRecord(payload) || !Array.isArray(payload.models)) {
           throw new Error('Server model ro‘yxatini noto‘g‘ri yubordi.')
         }
-        const validModels = payload.models.filter((model): model is PublicModel =>
+        guestModels = payload.models.flatMap((model): PublicModel[] =>
           isRecord(model) &&
           typeof model.platform === 'string' &&
           typeof model.provider === 'string' &&
           typeof model.modelId === 'string' &&
-          typeof model.displayName === 'string',
+          typeof model.displayName === 'string'
+            ? [{
+              platform: model.platform,
+              provider: model.provider,
+              modelId: model.modelId,
+              displayName: model.displayName,
+              access: 'guest',
+            }]
+            : [],
         )
-        setModels(validModels)
-        const preferredModel = validModels.find(model => model.modelId === DEFAULT_MODEL_ID) ?? validModels[0]
-        if (preferredModel) setModelKey(MODEL_KEY(preferredModel))
-      })
-      .catch(reason => {
-        if (!controller.signal.aborted) {
-          setError(reason instanceof Error ? reason.message : String(reason))
+      } catch (reason) {
+        if (controller.signal.aborted) return
+        guestError = reason instanceof Error ? reason.message : String(reason)
+      }
+
+      let memberModels: PublicModel[] = []
+      try {
+        const status = await apiFetch<{ authenticated: boolean; email: string | null; role: string | null }>(
+          '/api/auth/status',
+          { signal: controller.signal },
+        )
+        if (status.authenticated && status.email) {
+          setAccount({ email: status.email, role: status.role ?? 'user' })
+          const payload = await apiFetch<unknown>('/api/member/chat/models', { signal: controller.signal })
+          if (isRecord(payload) && Array.isArray(payload.models)) {
+            memberModels = payload.models.flatMap((model): PublicModel[] =>
+              isRecord(model) &&
+              typeof model.id === 'number' &&
+              typeof model.platform === 'string' &&
+              typeof model.provider === 'string' &&
+              typeof model.modelId === 'string' &&
+              typeof model.displayName === 'string'
+                ? [{
+                  access: 'member',
+                  modelDbId: model.id,
+                  platform: model.platform,
+                  provider: model.provider,
+                  modelId: model.modelId,
+                  displayName: model.displayName,
+                }]
+                : [],
+            )
+          }
         }
-      })
-      .finally(() => {
-        if (!controller.signal.aborted) setLoadingModels(false)
-      })
+      } catch {
+        // Guest chat remains available if account status or shared models cannot load.
+      }
+
+      if (controller.signal.aborted) return
+      const availableModels = [...memberModels, ...guestModels]
+      setModels(availableModels)
+      const preferredModel = memberModels[0] ??
+        guestModels.find(model => model.modelId === DEFAULT_MODEL_ID) ??
+        guestModels[0]
+      if (preferredModel) setModelKey(MODEL_KEY(preferredModel))
+      if (availableModels.length === 0 && guestError) setError(guestError)
+      setLoadingModels(false)
+    }
+
+    void loadModels()
     return () => controller.abort()
   }, [])
 
@@ -119,17 +172,28 @@ export default function PublicChatPage() {
     setSending(true)
 
     try {
-      const response = await fetch(`${BASE}/api/public/chat/completions`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          platform: selectedModel.platform,
-          modelId: selectedModel.modelId,
-          messages: nextMessages.slice(-20),
-        }),
-      })
-      const payload: unknown = await response.json()
-      if (!response.ok) throw new Error(errorMessage(payload, 'Javob olishda xatolik yuz berdi.'))
+      let payload: unknown
+      if (selectedModel.access === 'member' && selectedModel.modelDbId !== undefined) {
+        payload = await apiFetch<unknown>('/api/member/chat/completions', {
+          method: 'POST',
+          body: JSON.stringify({
+            modelDbId: selectedModel.modelDbId,
+            messages: nextMessages.slice(-20),
+          }),
+        })
+      } else {
+        const response = await fetch(`${BASE}/api/public/chat/completions`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            platform: selectedModel.platform,
+            modelId: selectedModel.modelId,
+            messages: nextMessages.slice(-20),
+          }),
+        })
+        payload = await response.json()
+        if (!response.ok) throw new Error(errorMessage(payload, 'Javob olishda xatolik yuz berdi.'))
+      }
       const answer = assistantText(payload)
       if (!answer) throw new Error('Model bo‘sh javob qaytardi. Boshqa modelni tanlab ko‘ring.')
       setMessages(current => [...current, { role: 'assistant', content: answer }])
@@ -149,15 +213,24 @@ export default function PublicChatPage() {
           <ArrowLeft className="size-4" aria-hidden="true" />
           Bosh sahifa
         </Link>
-        <div className="text-right">
-          <p className="text-sm font-semibold">Zarnur AI</p>
-          <p className="text-[11px] text-muted-foreground">Bepul chat · API kaliti shart emas</p>
+        <div className="flex items-center gap-3">
+          <Link to="/video" className="inline-flex min-h-10 items-center gap-1.5 rounded-lg border px-2.5 text-xs text-muted-foreground transition hover:bg-muted hover:text-foreground">
+            <Clapperboard className="size-3.5" aria-hidden="true" />
+            Video
+          </Link>
+          <Link to="/account" className="max-w-36 truncate text-xs text-muted-foreground transition hover:text-foreground sm:max-w-none">
+            {account?.email ?? 'Kirish / hisob ochish'}
+          </Link>
+          <div className="text-right">
+            <p className="text-sm font-semibold">Zarnur AI</p>
+            <p className="text-[11px] text-muted-foreground">Bepul chat · API kaliti shart emas</p>
+          </div>
         </div>
       </header>
 
       <section className="mx-auto grid w-full max-w-4xl shrink-0 gap-3 px-4 py-4 sm:grid-cols-[minmax(0,1fr)_minmax(0,1.3fr)] sm:px-6">
         <label className="grid gap-1.5 text-xs font-medium">
-          Bepul AI modeli
+          AI modeli
           <select
             value={modelKey}
             onChange={event => setModelKey(event.target.value)}
@@ -165,20 +238,35 @@ export default function PublicChatPage() {
             className="h-10 min-w-0 rounded-lg border bg-background px-3 text-sm font-normal outline-none focus-visible:ring-2 focus-visible:ring-ring"
           >
             {loadingModels && <option value="">Modellar yuklanmoqda…</option>}
-            {!loadingModels && models.length === 0 && <option value="">Bepul model hozircha mavjud emas</option>}
-            {models.map(model => (
-              <option key={MODEL_KEY(model)} value={MODEL_KEY(model)}>
-                {model.displayName}
-              </option>
-            ))}
+            {!loadingModels && models.length === 0 && <option value="">Model hozircha mavjud emas</option>}
+            {models.some(model => model.access === 'member') && (
+              <optgroup label="Administrator ulashgan modellar">
+                {models.filter(model => model.access === 'member').map(model => (
+                  <option key={MODEL_KEY(model)} value={MODEL_KEY(model)}>
+                    {model.displayName} · {model.provider}
+                  </option>
+                ))}
+              </optgroup>
+            )}
+            {models.some(model => model.access === 'guest') && (
+              <optgroup label="Mehmonlar uchun bepul modellar">
+                {models.filter(model => model.access === 'guest').map(model => (
+                  <option key={MODEL_KEY(model)} value={MODEL_KEY(model)}>
+                    {model.displayName}
+                  </option>
+                ))}
+              </optgroup>
+            )}
           </select>
         </label>
 
         <div className="flex items-center rounded-xl border bg-card px-4 py-3">
           <div>
-            <p className="text-sm font-medium">API kaliti kerak emas</p>
+            <p className="text-sm font-medium">{selectedModel?.access === 'member' ? 'Server modeli' : 'API kaliti kerak emas'}</p>
             <p className="mt-1 text-xs text-muted-foreground">
-              Bepul modelning umumiy soatlik limiti bor.
+              {selectedModel?.access === 'member'
+                ? 'Ulangan hisoblar uchun kuniga 30 ta xabargacha. Provayder kvotasi ham amal qiladi.'
+                : 'Mehmonlar uchun umumiy soatlik limit mavjud.'}
             </p>
           </div>
         </div>
@@ -196,7 +284,7 @@ export default function PublicChatPage() {
             </div>
             <h1 className="mt-4 text-xl font-semibold">Salom, men Zarnur.</h1>
             <p className="mt-2 max-w-md text-sm text-muted-foreground">
-              Savolingizni yozing — API kaliti kiritish shart emas.
+              Savolingizni yozing. Hisob ochsangiz administrator ulashgan modellar ham paydo bo‘ladi.
             </p>
             {models.length > 0 && (
               <div className="mt-6 flex max-w-xl flex-wrap justify-center gap-2">

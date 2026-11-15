@@ -399,6 +399,8 @@ export interface ApiKey {
   groupLabel?: string | null;
   status: KeyStatus;
   enabled: boolean;
+  /** Explicitly opted in to server-side Zarnur member chat. */
+  shareWithMembers?: boolean;
   /** This row is the anonymous sentinel of a key-optional platform: there is
    *  no credential to copy, scope or reveal. */
   keyless: boolean;

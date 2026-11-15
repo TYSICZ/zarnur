@@ -1,7 +1,8 @@
 import { useEffect, useRef, useState, type FormEvent } from 'react'
-import { LoaderCircle, MessageCircle, RefreshCw, Send, Trash2, Users, WandSparkles } from 'lucide-react'
+import { LoaderCircle, MessageCircle, RefreshCw, Send, Shield, Trash2, Users, WandSparkles } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { apiFetch } from '@/lib/api'
+import type { ApiKey } from '../../../shared/types'
 
 interface Overview {
   visitors: number
@@ -40,6 +41,15 @@ interface SupportMessage {
   createdAt: string
 }
 
+interface RegisteredUser {
+  id: number
+  email: string
+  role: 'admin' | 'user'
+  disabled: boolean
+  createdAt: string
+  requestsToday: number
+}
+
 const EMPTY_OVERVIEW: Overview = { visitors: 0, aiUsers: 0, aiUses: 0, unreadMessages: 0 }
 
 function formatDate(value: string): string {
@@ -53,11 +63,14 @@ export default function ZarnurAdminPage() {
   const [overview, setOverview] = useState<Overview>(EMPTY_OVERVIEW)
   const [threads, setThreads] = useState<Thread[]>([])
   const [visitors, setVisitors] = useState<Visitor[]>([])
+  const [registeredUsers, setRegisteredUsers] = useState<RegisteredUser[]>([])
+  const [providerKeys, setProviderKeys] = useState<ApiKey[]>([])
   const [selectedId, setSelectedId] = useState<number | null>(null)
   const [messages, setMessages] = useState<SupportMessage[]>([])
   const [draft, setDraft] = useState('')
   const [loading, setLoading] = useState(true)
   const [sending, setSending] = useState(false)
+  const [updatingId, setUpdatingId] = useState<number | null>(null)
   const [error, setError] = useState('')
   const endRef = useRef<HTMLDivElement>(null)
 
@@ -72,6 +85,16 @@ export default function ZarnurAdminPage() {
     setVisitors(visitorList.visitors)
   }
 
+  async function refreshMembers() {
+    const result = await apiFetch<{ users: RegisteredUser[] }>('/api/admin/users')
+    setRegisteredUsers(result.users)
+  }
+
+  async function refreshKeys() {
+    const result = await apiFetch<ApiKey[]>('/api/keys')
+    setProviderKeys(result)
+  }
+
   async function refreshMessages(visitorId: number) {
     const result = await apiFetch<{ messages: SupportMessage[] }>(
       `/api/support/threads/${visitorId}/messages`,
@@ -83,7 +106,7 @@ export default function ZarnurAdminPage() {
     let active = true
     const load = async () => {
       try {
-        await refreshInbox()
+        await Promise.all([refreshInbox(), refreshMembers(), refreshKeys()])
         if (active) setError('')
       } catch (reason) {
         if (active) setError(reason instanceof Error ? reason.message : String(reason))
@@ -161,6 +184,39 @@ export default function ZarnurAdminPage() {
     }
   }
 
+  async function setMemberDisabled(member: RegisteredUser, disabled: boolean) {
+    if (disabled && !window.confirm(`${member.email} hisobini vaqtincha o‘chirasizmi? U qayta yoqilguncha chatga kira olmaydi.`)) return
+    setUpdatingId(member.id)
+    setError('')
+    try {
+      await apiFetch(`/api/admin/users/${member.id}`, {
+        method: 'PATCH',
+        body: JSON.stringify({ disabled }),
+      })
+      await refreshMembers()
+    } catch (reason) {
+      setError(reason instanceof Error ? reason.message : String(reason))
+    } finally {
+      setUpdatingId(null)
+    }
+  }
+
+  async function setKeyShared(key: ApiKey, shareWithMembers: boolean) {
+    setUpdatingId(-key.id)
+    setError('')
+    try {
+      await apiFetch(`/api/keys/${key.id}`, {
+        method: 'PATCH',
+        body: JSON.stringify({ shareWithMembers }),
+      })
+      await refreshKeys()
+    } catch (reason) {
+      setError(reason instanceof Error ? reason.message : String(reason))
+    } finally {
+      setUpdatingId(null)
+    }
+  }
+
   return (
     <div className="space-y-6">
       <header className="flex flex-wrap items-end justify-between gap-3">
@@ -194,6 +250,86 @@ export default function ZarnurAdminPage() {
             <p className="mt-3 text-3xl font-semibold tabular-nums">{card.value}</p>
           </article>
         ))}
+      </section>
+
+      <section className="overflow-hidden rounded-2xl border bg-card">
+        <div className="border-b px-4 py-3">
+          <div className="flex items-center gap-2">
+            <Users className="size-4 text-amber-600 dark:text-amber-300" aria-hidden="true" />
+            <h2 className="font-semibold">Ro‘yxatdan o‘tgan foydalanuvchilar</h2>
+          </div>
+          <p className="mt-1 text-xs text-muted-foreground">
+            Hisoblarni kuzating va kerak bo‘lsa vaqtincha o‘chirib qo‘ying. Har bir hisob kuniga 30 ta server AI xabaridan foydalanadi.
+          </p>
+        </div>
+        {registeredUsers.length === 0 ? (
+          <p className="p-4 text-sm text-muted-foreground">Hozircha hisob ochgan foydalanuvchi yo‘q.</p>
+        ) : (
+          <div className="divide-y">
+            {registeredUsers.map(member => (
+              <article key={member.id} className="flex flex-wrap items-center justify-between gap-3 px-4 py-3">
+                <div className="min-w-0">
+                  <p className="truncate text-sm font-medium">{member.email}</p>
+                  <p className="mt-1 text-xs text-muted-foreground">
+                    {member.role === 'admin' ? 'Administrator' : 'Foydalanuvchi'} · {member.requestsToday} AI xabari bugun
+                    {member.disabled ? ' · Hisob o‘chirilgan' : ''}
+                  </p>
+                </div>
+                {member.role === 'user' && (
+                  <Button
+                    type="button"
+                    size="sm"
+                    variant={member.disabled ? 'outline' : 'ghost'}
+                    disabled={updatingId === member.id}
+                    onClick={() => void setMemberDisabled(member, !member.disabled)}
+                  >
+                    {updatingId === member.id ? <LoaderCircle className="size-4 animate-spin" /> : null}
+                    {member.disabled ? 'Qayta yoqish' : 'Hisobni o‘chirish'}
+                  </Button>
+                )}
+              </article>
+            ))}
+          </div>
+        )}
+      </section>
+
+      <section className="overflow-hidden rounded-2xl border bg-card">
+        <div className="border-b px-4 py-3">
+          <div className="flex items-center gap-2">
+            <Shield className="size-4 text-amber-600 dark:text-amber-300" aria-hidden="true" />
+            <h2 className="font-semibold">AI kalitlarini foydalanuvchilar bilan ulashish</h2>
+          </div>
+          <p className="mt-1 text-xs leading-relaxed text-muted-foreground">
+            Faqat siz belgilagan kalitlar foydalanuvchilarga ochiladi. Ulashilgan kalitlar provayder kvotasidan foydalanadi
+            va bepul tariflar ham o‘zgarishi mumkin.
+          </p>
+        </div>
+        {providerKeys.filter(key => !key.keyless && key.platform !== 'custom').length === 0 ? (
+          <p className="p-4 text-sm text-muted-foreground">Ulashish mumkin bo‘lgan provayder kaliti topilmadi.</p>
+        ) : (
+          <div className="divide-y">
+            {providerKeys.filter(key => !key.keyless && key.platform !== 'custom').map(key => (
+              <article key={key.id} className="flex flex-wrap items-center justify-between gap-3 px-4 py-3">
+                <div className="min-w-0">
+                  <p className="truncate text-sm font-medium">{key.label || key.platform}</p>
+                  <p className="mt-1 truncate text-xs text-muted-foreground">
+                    {key.platform} · {key.maskedKey} · {key.enabled ? key.status : 'o‘chirilgan'}
+                  </p>
+                </div>
+                <Button
+                  type="button"
+                  size="sm"
+                  variant={key.shareWithMembers ? 'default' : 'outline'}
+                  disabled={updatingId === -key.id}
+                  onClick={() => void setKeyShared(key, !key.shareWithMembers)}
+                >
+                  {updatingId === -key.id ? <LoaderCircle className="size-4 animate-spin" /> : null}
+                  {key.shareWithMembers ? 'Ulashilgan' : 'Ulashish'}
+                </Button>
+              </article>
+            ))}
+          </div>
+        )}
       </section>
 
       <p className="rounded-xl border border-amber-500/20 bg-amber-500/5 p-3 text-xs leading-relaxed text-muted-foreground">

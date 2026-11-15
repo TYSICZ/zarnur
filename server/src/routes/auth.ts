@@ -1,9 +1,12 @@
 import { Router } from 'express';
 import type { Request, Response } from 'express';
+import crypto from 'crypto';
 import { z } from 'zod';
+import { OAuth2Client } from 'google-auth-library';
 import {
   userCount,
   createUser,
+  resolveGoogleUser,
   verifyCredentials,
   createSession,
   validateSession,
@@ -22,6 +25,11 @@ import { isLoopbackRequest } from '../lib/loopback.js';
 import { generateResetCode, resetCodeMatches, clearResetCode } from '../lib/reset-code.js';
 
 export const authRouter = Router();
+
+const SESSION_COOKIE_NAME = 'zarnur_session';
+const GOOGLE_STATE_COOKIE = 'zarnur_google_state';
+const GOOGLE_NONCE_COOKIE = 'zarnur_google_nonce';
+const SESSION_TTL_SECONDS = 30 * 24 * 60 * 60;
 
 // Dashboard auth (#35). These routes are mounted BEFORE requireAuth, so
 // /status, /setup and /login are reachable without a session (bootstrap);
@@ -98,8 +106,50 @@ function clearFailures(email: string): void {
 }
 
 function bearer(req: Request): string | undefined {
-  return req.headers.authorization?.replace(/^Bearer\s+/i, '')
+  const token = req.headers.authorization?.replace(/^Bearer\s+/i, '')
     ?? (req.headers['x-dashboard-token'] as string | undefined);
+  if (validateSession(token)) return token;
+  return cookieValue(req, SESSION_COOKIE_NAME) ?? token;
+}
+
+function cookieValue(req: Request, name: string): string | undefined {
+  const header = req.headers.cookie;
+  if (!header) return undefined;
+  for (const part of header.split(';')) {
+    const [key, ...value] = part.trim().split('=');
+    if (key === name) {
+      try { return decodeURIComponent(value.join('=')); } catch { return undefined; }
+    }
+  }
+  return undefined;
+}
+
+function googleOAuthConfig(): { clientId: string; clientSecret: string; redirectUri: string } | null {
+  const clientId = process.env.GOOGLE_CLIENT_ID?.trim();
+  const clientSecret = process.env.GOOGLE_CLIENT_SECRET?.trim();
+  const redirectUri = process.env.GOOGLE_REDIRECT_URI?.trim();
+  return clientId && clientSecret && redirectUri ? { clientId, clientSecret, redirectUri } : null;
+}
+
+function secureCookie(req: Request): boolean {
+  return process.env.NODE_ENV === 'production' || req.secure ||
+    String(req.headers['x-forwarded-proto'] ?? '').split(',')[0]?.trim().toLowerCase() === 'https';
+}
+
+function appendCookie(res: Response, cookie: string): void {
+  const current = res.getHeader('Set-Cookie');
+  const values = current === undefined ? [] : Array.isArray(current) ? current.map(String) : [String(current)];
+  res.setHeader('Set-Cookie', [...values, cookie]);
+}
+
+function setAuthCookie(req: Request, res: Response, name: string, value: string, maxAge: number): void {
+  const secure = secureCookie(req) ? '; Secure' : '';
+  appendCookie(res, `${name}=${encodeURIComponent(value)}; Path=/; Max-Age=${maxAge}; HttpOnly; SameSite=Lax${secure}`);
+}
+
+function clearAuthCookie(req: Request, res: Response, name: string): void {
+  const secure = secureCookie(req) ? '; Secure' : '';
+  appendCookie(res, `${name}=; Path=/; Max-Age=0; HttpOnly; SameSite=Lax${secure}`);
 }
 
 // Is the caller connecting from the local machine? The socket peer address is
@@ -177,8 +227,15 @@ authRouter.get('/status', (req: Request, res: Response) => {
     needsSetup: userCount() === 0,
     authenticated: !!session,
     email: session?.email ?? null,
+    role: session?.role ?? null,
+    googleEnabled: googleOAuthConfig() !== null,
     desktop: desktopSignInAllowed(req),
   });
+});
+
+authRouter.get('/config', (_req: Request, res: Response) => {
+  res.setHeader('Cache-Control', 'no-store');
+  res.json({ registrationEnabled: userCount() > 0, googleEnabled: googleOAuthConfig() !== null });
 });
 
 authRouter.post('/desktop-session', (req: Request, res: Response) => {
@@ -218,10 +275,101 @@ authRouter.post('/setup', (req: Request, res: Response) => {
     res.status(400).json({ error: { message: parsed.error.issues.map(e => e.message).join(', ') } });
     return;
   }
-  const user = createUser(parsed.data.email, parsed.data.password);
+  const user = createUser(parsed.data.email, parsed.data.password, 'admin');
   clearSetupCode(); // one-time: the dashboard is now claimed
   const token = createSession(user.userId);
-  res.status(201).json({ token, email: user.email });
+  res.status(201).json({ token, email: user.email, role: user.role });
+});
+
+authRouter.post('/register', (req: Request, res: Response) => {
+  if (userCount() === 0) {
+    res.status(409).json({ error: { message: 'Create the administrator account first.', type: 'setup_required' } });
+    return;
+  }
+  const parsed = signupSchema.safeParse(req.body);
+  if (!parsed.success) {
+    res.status(400).json({ error: { message: parsed.error.issues.map(e => e.message).join(', '), type: 'invalid_request_error' } });
+    return;
+  }
+  try {
+    const user = createUser(parsed.data.email, parsed.data.password, 'user');
+    const token = createSession(user.userId);
+    res.status(201).json({ token, email: user.email, role: user.role });
+  } catch (error) {
+    if (error instanceof Error && 'code' in error && error.code === 'email_taken') {
+      res.status(409).json({ error: { message: error.message, type: 'email_taken' } });
+      return;
+    }
+    throw error;
+  }
+});
+
+authRouter.get('/google/start', (req: Request, res: Response) => {
+  const config = googleOAuthConfig();
+  if (!config) {
+    res.status(503).json({
+      error: { message: 'Google sign-in is not configured on this server.', type: 'google_auth_unavailable' },
+    });
+    return;
+  }
+  if (userCount() === 0) {
+    res.redirect('/account?auth=setup_required');
+    return;
+  }
+
+  const state = crypto.randomBytes(32).toString('base64url');
+  const nonce = crypto.randomBytes(32).toString('base64url');
+  setAuthCookie(req, res, GOOGLE_STATE_COOKIE, state, 10 * 60);
+  setAuthCookie(req, res, GOOGLE_NONCE_COOKIE, nonce, 10 * 60);
+  const oauth = new OAuth2Client(config.clientId, config.clientSecret, config.redirectUri);
+  res.redirect(oauth.generateAuthUrl({
+    access_type: 'online',
+    prompt: 'select_account',
+    scope: ['openid', 'email', 'profile'],
+    state,
+    nonce,
+  }));
+});
+
+authRouter.get('/google/callback', async (req: Request, res: Response) => {
+  const config = googleOAuthConfig();
+  const state = typeof req.query.state === 'string' ? req.query.state : '';
+  const code = typeof req.query.code === 'string' ? req.query.code : '';
+  const expectedState = cookieValue(req, GOOGLE_STATE_COOKIE);
+  const expectedNonce = cookieValue(req, GOOGLE_NONCE_COOKIE);
+  clearAuthCookie(req, res, GOOGLE_STATE_COOKIE);
+  clearAuthCookie(req, res, GOOGLE_NONCE_COOKIE);
+  res.setHeader('Cache-Control', 'no-store');
+
+  if (!config || !state || !expectedState || state !== expectedState || !expectedNonce || !code) {
+    res.redirect('/account?auth=google_error');
+    return;
+  }
+  try {
+    const oauth = new OAuth2Client(config.clientId, config.clientSecret, config.redirectUri);
+    const { tokens } = await oauth.getToken(code);
+    if (!tokens.id_token) throw new Error('Google did not return an ID token');
+    const ticket = await oauth.verifyIdToken({ idToken: tokens.id_token, audience: config.clientId });
+    const payload = ticket.getPayload();
+    if (!payload?.sub || !payload.email || payload.email_verified !== true || payload.nonce !== expectedNonce) {
+      throw new Error('Google identity verification failed');
+    }
+    const user = resolveGoogleUser(payload.email, payload.sub);
+    const token = createSession(user.userId);
+    setAuthCookie(req, res, SESSION_COOKIE_NAME, token, SESSION_TTL_SECONDS);
+    res.redirect('/chat');
+  } catch (error) {
+    if (!(error instanceof Error && 'code' in error &&
+      (error.code === 'email_taken' || error.code === 'account_disabled'))) {
+      console.error('[auth] Google sign-in could not be completed.');
+    }
+    const reason = error instanceof Error && 'code' in error && error.code === 'email_taken'
+      ? 'email_taken'
+      : error instanceof Error && 'code' in error && error.code === 'account_disabled'
+        ? 'account_disabled'
+        : 'google_error';
+    res.redirect(`/account?auth=${reason}`);
+  }
 });
 
 authRouter.post('/login', (req: Request, res: Response) => {
@@ -251,11 +399,12 @@ authRouter.post('/login', (req: Request, res: Response) => {
 
   clearFailures(email);
   const token = createSession(user.userId);
-  res.json({ token, email: user.email });
+  res.json({ token, email: user.email, role: user.role });
 });
 
 authRouter.post('/logout', (req: Request, res: Response) => {
   deleteSession(bearer(req));
+  clearAuthCookie(req, res, SESSION_COOKIE_NAME);
   res.json({ success: true });
 });
 
@@ -265,7 +414,7 @@ authRouter.get('/me', (req: Request, res: Response) => {
     res.status(401).json({ error: { message: 'Authentication required', type: 'authentication_error' } });
     return;
   }
-  res.json({ email: session.email });
+  res.json({ email: session.email, role: session.role });
 });
 
 // Change email (requires active session + current password)
@@ -382,5 +531,5 @@ authRouter.post('/reset-password', (req: Request, res: Response) => {
   // install, and sending them back to a login form that needs an email they
   // may not remember left them locked out after a successful reset (#1477).
   const token = createSession(user.userId);
-  res.json({ success: true, token, email: user.email });
+  res.json({ success: true, token, email: user.email, role: user.role });
 });

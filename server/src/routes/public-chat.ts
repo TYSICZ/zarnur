@@ -155,7 +155,7 @@ const completionSchema = z.object({
 
 const LOCAL_HOSTS = new Set(['localhost', '127.0.0.1', '[::1]', '::1']);
 
-function isSecureChatRequest(req: Request): boolean {
+export function isSecureChatRequest(req: Request): boolean {
   const origin = req.headers.origin;
   if (typeof origin === 'string') {
     try {

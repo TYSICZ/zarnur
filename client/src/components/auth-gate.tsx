@@ -10,6 +10,7 @@ import { Label } from '@/components/ui/label'
 import { isEmail } from '@/lib/validate'
 import { useI18n } from '@/i18n'
 import { toast } from '@/lib/toast'
+import { Navigate } from 'react-router-dom'
 
 // Matches the server rule (routes/auth.ts zod schema).
 const PASSWORD_MIN = 8
@@ -44,6 +45,7 @@ interface AuthStatus {
   needsSetup: boolean
   authenticated: boolean
   email: string | null
+  role?: 'admin' | 'user' | null
   desktop?: boolean
 }
 
@@ -541,6 +543,7 @@ export function AuthGate({ children }: { children: ReactNode }) {
   }
   if (data.needsSetup) return <AuthForm mode="setup" onAuthed={onAuthed} />
   if (!data.authenticated) return <AuthForm mode="login" onAuthed={onAuthed} />
+  if (data.role === 'user') return <Navigate to="/chat" replace />
 
   return <>{children}</>
 }

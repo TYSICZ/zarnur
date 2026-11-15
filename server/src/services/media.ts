@@ -1284,15 +1284,21 @@ export async function runVideoGeneration(
   model: string | undefined,
   params: VideoParams,
   clientSignal?: AbortSignal,
+  options?: { allowedPlatforms?: ReadonlySet<string>; allowedKeyIds?: ReadonlySet<number> },
 ): Promise<VideoResult> {
-  const chain = resolveMediaChain(model, 'video');
+  const chain = resolveMediaChain(model, 'video').filter(row =>
+    !options?.allowedPlatforms || options.allowedPlatforms.has(row.platform));
+  if (chain.length === 0) {
+    throw new MediaError('No eligible free video provider is enabled.', 503);
+  }
   let lastError: MediaError | null = null;
   // Only a chain rate limited end to end earns a Retry-After (the soonest).
   const hints = new RetryHintTracker();
   for (const row of chain) {
     throwIfClientGone(clientSignal);
     const { credential, budgetBlocked } = reserveProviderCredential(row, 0,
-      keyId => isOnCooldown(row.platform, row.model_id, keyId));
+      keyId => isOnCooldown(row.platform, row.model_id, keyId) ||
+        (!!options?.allowedKeyIds && !options.allowedKeyIds.has(keyId)));
     if (!credential) {
       if (budgetBlocked) {
         lastError = new MediaError('Monthly key budget exhausted', 429, 'quota_exceeded');

@@ -11,6 +11,11 @@ const SESSION_TTL_MS = 30 * 24 * 60 * 60 * 1000; // 30 days
 export interface SessionUser {
   userId: number;
   email: string;
+  role: 'admin' | 'user';
+}
+
+function authError(message: string, code: string): Error & { code: string } {
+  return Object.assign(new Error(message), { code });
 }
 
 function sha256(s: string): string {
@@ -31,28 +36,51 @@ export function userCount(): number {
 }
 
 /** Create a user. Throws { code: 'email_taken' } if the email already exists. */
-export function createUser(email: string, password: string): SessionUser {
+export function createUser(email: string, password: string, role: SessionUser['role'] = 'admin'): SessionUser {
   const db = getDb();
   const normalized = normalizeEmail(email);
   const existing = db.prepare('SELECT id FROM users WHERE email = ?').get(normalized);
   if (existing) {
-    const err = new Error('An account with that email already exists') as any;
-    err.code = 'email_taken';
-    throw err;
+    throw authError('An account with that email already exists', 'email_taken');
   }
-  const result = db.prepare('INSERT INTO users (email, password_hash) VALUES (?, ?)')
-    .run(normalized, hashPassword(password));
-  return { userId: Number(result.lastInsertRowid), email: normalized };
+  const result = db.prepare('INSERT INTO users (email, password_hash, role) VALUES (?, ?, ?)')
+    .run(normalized, hashPassword(password), role);
+  return { userId: Number(result.lastInsertRowid), email: normalized, role };
 }
 
 /** Verify credentials. Returns the user on success, null on failure. */
 export function verifyCredentials(email: string, password: string): SessionUser | null {
   const db = getDb();
-  const row = db.prepare('SELECT id, email, password_hash FROM users WHERE email = ?')
-    .get(normalizeEmail(email)) as { id: number; email: string; password_hash: string } | undefined;
-  if (!row) return null;
+  const row = db.prepare('SELECT id, email, password_hash, role, disabled_at FROM users WHERE email = ?')
+    .get(normalizeEmail(email)) as {
+      id: number; email: string; password_hash: string; role: SessionUser['role']; disabled_at: string | null;
+    } | undefined;
+  if (!row || row.disabled_at) return null;
   if (!verifyPassword(password, row.password_hash)) return null;
-  return { userId: row.id, email: row.email };
+  return { userId: row.id, email: row.email, role: row.role };
+}
+
+/** Create or resolve a Google-authenticated member without linking by email. */
+export function resolveGoogleUser(email: string, subject: string): SessionUser {
+  const db = getDb();
+  const normalized = normalizeEmail(email);
+  const existing = db.prepare(
+    'SELECT id, email, role, disabled_at FROM users WHERE google_subject = ?',
+  ).get(subject) as {
+    id: number; email: string; role: SessionUser['role']; disabled_at: string | null;
+  } | undefined;
+  if (existing) {
+    if (existing.disabled_at) throw authError('This account has been disabled', 'account_disabled');
+    return { userId: existing.id, email: existing.email, role: existing.role };
+  }
+  if (db.prepare('SELECT id FROM users WHERE email = ?').get(normalized)) {
+    throw authError('This email already has an account. Sign in with its password.', 'email_taken');
+  }
+
+  const result = db.prepare(
+    'INSERT INTO users (email, password_hash, role, google_subject) VALUES (?, ?, ?, ?)',
+  ).run(normalized, hashPassword(crypto.randomBytes(32).toString('hex')), 'user', subject);
+  return { userId: Number(result.lastInsertRowid), email: normalized, role: 'user' };
 }
 
 /** Desktop app only: a session for the install's account, creating the hidden
@@ -80,16 +108,18 @@ export function validateSession(token: string | undefined | null): SessionUser |
   if (!token) return null;
   const db = getDb();
   const row = db.prepare(`
-    SELECT s.user_id, s.expires_at_ms, u.email
+    SELECT s.user_id, s.expires_at_ms, u.email, u.role, u.disabled_at
     FROM sessions s JOIN users u ON u.id = s.user_id
     WHERE s.token_hash = ?
-  `).get(sha256(token)) as { user_id: number; expires_at_ms: number; email: string } | undefined;
+  `).get(sha256(token)) as {
+    user_id: number; expires_at_ms: number; email: string; role: SessionUser['role']; disabled_at: string | null;
+  } | undefined;
   if (!row) return null;
-  if (row.expires_at_ms < Date.now()) {
+  if (row.expires_at_ms < Date.now() || row.disabled_at) {
     db.prepare('DELETE FROM sessions WHERE token_hash = ?').run(sha256(token));
     return null;
   }
-  return { userId: row.user_id, email: row.email };
+  return { userId: row.user_id, email: row.email, role: row.role };
 }
 
 export function deleteSession(token: string | undefined | null): void {
@@ -139,9 +169,7 @@ export function updateEmail(userId: number, currentPassword: string, newEmail: s
   const normalized = normalizeEmail(newEmail);
   const existing = db.prepare('SELECT id FROM users WHERE email = ? AND id != ?').get(normalized, userId);
   if (existing) {
-    const err = new Error('An account with that email already exists') as any;
-    err.code = 'email_taken';
-    throw err;
+    throw authError('An account with that email already exists', 'email_taken');
   }
   db.prepare('UPDATE users SET email = ? WHERE id = ?').run(normalized, userId);
   // Keep sessions alive; the new email will be reflected on the next validateSession call.
@@ -162,7 +190,7 @@ export function updatePassword(userId: number, currentPassword: string, newPassw
 
 /** The single account's email, or null before first-run setup. */
 export function accountEmail(): string | null {
-  const row = getDb().prepare('SELECT email FROM users LIMIT 1').get() as { email: string } | undefined;
+  const row = getDb().prepare("SELECT email FROM users WHERE role = 'admin' ORDER BY id LIMIT 1").get() as { email: string } | undefined;
   return row?.email ?? null;
 }
 
@@ -173,9 +201,11 @@ export function accountEmail(): string | null {
  */
 export function resetUserPassword(newPassword: string): SessionUser | null {
   const db = getDb();
-  const row = db.prepare('SELECT id, email FROM users LIMIT 1').get() as { id: number; email: string } | undefined;
+  const row = db.prepare("SELECT id, email, role FROM users WHERE role = 'admin' ORDER BY id LIMIT 1").get() as {
+    id: number; email: string; role: SessionUser['role'];
+  } | undefined;
   if (!row) return null;
   db.prepare('UPDATE users SET password_hash = ? WHERE id = ?').run(hashPassword(newPassword), row.id);
   db.prepare('DELETE FROM sessions WHERE user_id = ?').run(row.id);
-  return { userId: row.id, email: row.email };
+  return { userId: row.id, email: row.email, role: row.role };
 }

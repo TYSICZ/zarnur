@@ -190,15 +190,15 @@ For macOS 12 Monterey or later, choose **arm64 (Apple Silicon)** or **x64 (Intel
 
 ## Install Zarnur on a phone
 
-Zarnur can be installed as a Progressive Web App from an HTTPS deployment reachable by your phone. On Android, open it in Chrome and choose **Install app** (or **Add to Home screen**). On iPhone, open it in Safari, tap **Share**, then **Add to Home Screen**. The public chat works without a visitor API key; optional provider keys can be configured by the owner on the server's **Keys** page. The app needs a network connection to reach your Zarnur server. This installs the web app, not an App Store or Google Play native package.
+Zarnur can be installed as a Progressive Web App from an HTTPS deployment reachable by your phone. On Android, open it in Chrome and choose **Install app** (or **Add to Home screen**). On iPhone, open it in Safari, tap **Share**, then **Add to Home Screen**. The public chat works without a visitor API key. `/video` also has a local editor that can trim/reorder up to three clips, add a title and optional background music, and export without uploading media. Editing is limited to 80 MB of source video and 90 seconds after trimming; export runs in real time and the browser chooses MP4 or WebM. Signed-in members can additionally generate text-to-video when the admin shares an eligible NovAI CogVideoX Flash key; generation uses the 30-request daily member limit plus NovAI's own quota. Image-to-video is not enabled in the strict-free flow. The app needs a network connection to reach your Zarnur server. This installs the web app, not an App Store or Google Play native package.
 
-## Public Zarnur chat (no API key required)
+## Public Zarnur chat and member accounts
 
-The storefront's **Zarnur AI chatini ochish** button opens `/chat`. Visitors can select an anonymous free Kilo `:free` model and start chatting without entering an API key. The chat transcript is temporary. Requests are limited to 10 per minute per visitor and 180 per hour across the server instance to stay below Kilo's documented 200/hour anonymous IP quota; provider limits and terms can change. Prompts and outputs may be logged by the free provider for training, so visitors should not submit sensitive information.
+The storefront's **Zarnur AI chatini ochish** button opens `/chat`. Guests can select an anonymous free Kilo `:free` model without an API key. Visitors can create an email/password account at `/account` and use server models the admin has explicitly shared; chat transcripts are temporary and provider keys are never sent to user devices. Member accounts have a 30-message daily server-chat limit in addition to upstream provider quotas. Guest Kilo chat is limited to 10 requests/minute per IP and 180/hour per server instance. Free-tier quotas and terms can change, and providers may log prompts and outputs; users should not submit sensitive information.
 
-This does not make the admin dashboard or the `/v1` proxy multi-user: keep those private and never share your dashboard login or server-stored provider keys. The public chat is served by the same Node server as the API, so static-only hosting is not sufficient.
+Create the first owner/admin account at `/admin` using the one-time setup code in the active Railway deployment logs. Add provider keys on `/keys`, then opt in the selected keys under `/admin` → **AI kalitlarini foydalanuvchilar bilan ulashish**. New keys are not shared by default to avoid unexpected provider usage or billing. Optional Google sign-in requires a Google OAuth Web Client and the `GOOGLE_CLIENT_ID`, `GOOGLE_CLIENT_SECRET`, and `GOOGLE_REDIRECT_URI` service variables; the redirect URI must exactly match `https://<domain>/api/auth/google/callback` in Google Console. Email/password registration works without Google OAuth. Provider free tiers are not guaranteed to remain free; shared keys consume the owner's upstream quotas and may incur costs depending on provider settings.
 
-The first-run dashboard account is the owner/admin account; complete setup yourself before sharing the public URL. Open `/admin`; when prompted for first-time setup, use the code shown in the active Railway deployment logs. Optional provider keys can be added later on `/keys` but are not required for public chat. The public pages offer optional consent-based, anonymous visitor counts, broad device/OS categories, and a support chat with the admin inbox at `/admin`. Exact phone models and IP addresses are not stored in this visitor tracker. The Uzbek admin and optional API-key walkthrough is available as [Zarnur's PDF guide](client/public/zarnur-qollanma.pdf).
+Regular accounts do not access the owner dashboard or `/v1` API. Keep the admin login private. The public chat is served by the same Node server as the API, so static-only hosting is not sufficient. The public pages also offer optional consent-based, anonymous visitor counts, broad device/OS categories, and a support chat with the admin inbox at `/admin`; exact phone models and IP addresses are not stored in this visitor tracker. See [Zarnur's Uzbek PDF guide](client/public/zarnur-qollanma.pdf).
 
 ### Deploying on Railway
 
@@ -207,10 +207,11 @@ The repository's root `Dockerfile` builds the web app and API together. In Railw
 - `ENCRYPTION_KEY`: a persistent random 64-character hexadecimal value; do not rotate it after storing provider keys.
 - `TRUST_PROXY`: `1`, so the server uses Railway's forwarded client IP for rate limits.
 - `ALLOWED_HOSTS`: `${{RAILWAY_PUBLIC_DOMAIN}}`, to allow the generated host while keeping the DNS-rebinding guard enabled.
+- Optional Google sign-in: configure `GOOGLE_CLIENT_ID`, `GOOGLE_CLIENT_SECRET`, and `GOOGLE_REDIRECT_URI` only after setting up the matching Google OAuth callback.
 
 Railway supplies `PORT` automatically. The public storefront is at `/` and the no-key chat at `/chat`. Railway account and volume pricing are controlled by Railway; review them before deploying. The remaining dashboard and `/v1` routes still require the single owner account.
 
-The current Railway deployment is available at <https://freellmapi-production-66963685.up.railway.app/> from any Wi-Fi or phone. Before sharing it, create the first owner/admin account at `/admin` using the one-time `First-run setup code` shown in Railway → `freellmapi` service → active deployment → **View logs**. The owner dashboard is at `/admin`; public chat is at `/chat` and does not require an API key.
+The current Railway deployment is available at <https://freellmapi-production-66963685.up.railway.app/> from any Wi-Fi or phone. Before sharing it, create the first owner/admin account at `/admin` using the one-time `First-run setup code` shown in Railway → `freellmapi` service → active deployment → **View logs**. Users can register at `/account`; the owner manages accounts and shared keys at `/admin`.
 
 ## Works with OpenAI-compatible clients
 
@@ -225,7 +226,7 @@ MCP URL. **[ChatGPT setup →](docs/en/clients/01-agent-clients.md#chatgpt-priva
 
 Provider keys can be managed from the terminal too, with a dashboard session token (`FREELLMAPI_DASHBOARD_TOKEN` or `--token`): `npx freellmapi keys add|list|remove|test <platform>`, where `keys test` re-checks stored keys. See [cli/README.md](cli/README.md#provider-keys).
 
-Zarnur is local-first and single-user by design. Your provider keys stay in your SQLite database, encrypted at rest, and requests go from your machine to the upstream providers you enabled.
+Zarnur is self-hosted: provider keys stay in the encrypted SQLite database, and member chat can use only the keys the owner explicitly shares. Requests go from the server to upstream providers; quotas and billing remain controlled by those providers.
 
 ## Languages
 

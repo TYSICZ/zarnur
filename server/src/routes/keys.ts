@@ -150,6 +150,7 @@ const addKeySchema = z.object({
 // returning the key to serving every model of its platform.
 const updateKeySchema = z.object({
   enabled: z.boolean().optional(),
+  shareWithMembers: z.boolean().optional(),
   label: z.string().optional(),
   modelScope: z.array(z.string().trim().min(1).max(200)).max(100).nullable().optional(),
   // #590: '' clears the per-key proxy; absent leaves it unchanged.
@@ -162,8 +163,8 @@ const updateKeySchema = z.object({
   groupLabel: z.string().trim().max(80).optional(),
   // An absent credential leaves the encrypted key untouched.
   key: z.string().trim().min(1).optional(),
-}).refine(data => data.enabled !== undefined || data.label !== undefined || data.modelScope !== undefined || data.proxyUrl !== undefined || data.key !== undefined || data.monthlyRequestCap !== undefined || data.monthlyTokenCap !== undefined || data.groupLabel !== undefined, {
-  message: 'At least one of enabled, label, modelScope, proxyUrl, key, monthlyRequestCap, monthlyTokenCap or groupLabel must be provided',
+}).refine(data => data.enabled !== undefined || data.shareWithMembers !== undefined || data.label !== undefined || data.modelScope !== undefined || data.proxyUrl !== undefined || data.key !== undefined || data.monthlyRequestCap !== undefined || data.monthlyTokenCap !== undefined || data.groupLabel !== undefined, {
+  message: 'At least one key setting must be provided',
 });
 
 const importKeySchema = z.object({
@@ -498,6 +499,7 @@ keysRouter.get('/', (_req: Request, res: Response) => {
       },
       status: row.status,
       enabled: row.enabled === 1,
+      shareWithMembers: row.share_with_members === 1,
       // `keyOptional`: the platform works with or without a key (Kilo, OVH,
       // AI Horde). `keyless`: THIS row is the anonymous sentinel, so there is
       // no credential to copy, scope or reveal. A real key saved on a
@@ -1923,7 +1925,7 @@ keysRouter.patch('/:id', (req: Request, res: Response) => {
     return;
   }
 
-  const { enabled, label, modelScope, proxyUrl, key, monthlyRequestCap, monthlyTokenCap, groupLabel } = parsed.data;
+  const { enabled, shareWithMembers, label, modelScope, proxyUrl, key, monthlyRequestCap, monthlyTokenCap, groupLabel } = parsed.data;
   const updates: string[] = [];
   const values: (string | number | null)[] = [];
   let changedKey: string | undefined;
@@ -1958,6 +1960,10 @@ keysRouter.patch('/:id', (req: Request, res: Response) => {
   if (enabled !== undefined) {
     updates.push('enabled = ?');
     values.push(enabled ? 1 : 0);
+  }
+  if (shareWithMembers !== undefined) {
+    updates.push('share_with_members = ?');
+    values.push(shareWithMembers ? 1 : 0);
   }
   if (changedKey !== undefined) {
     const { encrypted, iv, authTag } = encrypt(changedKey);
@@ -2030,6 +2036,7 @@ keysRouter.patch('/:id', (req: Request, res: Response) => {
 
   const response: Record<string, unknown> = { success: true };
   if (enabled !== undefined) response.enabled = enabled;
+  if (shareWithMembers !== undefined) response.shareWithMembers = shareWithMembers;
   if (label !== undefined) response.label = label;
   if (proxyUrl !== undefined) response.maskedProxyUrl = maskProxyUrl(proxyUrl);
   if (key !== undefined) response.maskedKey = maskKey(key);

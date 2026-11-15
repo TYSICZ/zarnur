@@ -33,6 +33,8 @@ import KeysPage from '@/pages/KeysPage'
 import PlaygroundPage from '@/pages/PlaygroundPage'
 import JewelryLandingPage from '@/pages/JewelryLandingPage'
 import PublicChatPage from '@/pages/PublicChatPage'
+import PublicVideoPage from '@/pages/PublicVideoPage'
+import AccountPage from '@/pages/AccountPage'
 import ZarnurAdminPage from '@/pages/ZarnurAdminPage'
 import ZarnurSupportChat from '@/components/ZarnurSupportChat'
 import FallbackPage from '@/pages/FallbackPage'
@@ -484,6 +486,8 @@ function AppRoutes() {
       </>
     )
   }
+  if (location.pathname === '/video') return <PublicVideoPage />
+  if (location.pathname === '/account') return <AccountPage />
 
   return (
     <AuthGate>

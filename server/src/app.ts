@@ -28,6 +28,9 @@ import { cacheRouter } from './routes/cache.js';
 import { compressionRouter } from './routes/compression.js';
 import { authRouter } from './routes/auth.js';
 import { publicChatRouter } from './routes/public-chat.js';
+import { memberChatRouter } from './routes/member-chat.js';
+import { memberVideoRouter } from './routes/member-video.js';
+import { zarnurAdminRouter } from './routes/zarnur-admin.js';
 import { adminSupportRouter, publicSupportRouter, publicVisitorRouter } from './routes/public-support.js';
 import { docsRouter } from './routes/docs.js';
 import { mcpRouter } from './routes/mcp.js';
@@ -37,7 +40,7 @@ import { ollamaRouter } from './routes/ollama.js';
 import { urlTokenRouter } from './routes/url-tokens.js';
 import { updateRouter } from './routes/update.js';
 import { moderationRouter } from './routes/moderation.js';
-import { requireAuth } from './middleware/requireAuth.js';
+import { requireAuth, requireUser } from './middleware/requireAuth.js';
 import { createHostGuard } from './middleware/allowed-hosts.js';
 import { createProxyRateLimiter, createAdminRateLimiter } from './middleware/rateLimit.js';
 
@@ -254,11 +257,16 @@ export function createApp(config?: Config) {
   // the Ollama /api/* mount above, which carries its own proxy limiter.
   const adminRateLimiter = createAdminRateLimiter();
   app.use('/api', adminRateLimiter);
+  app.use('/api/auth/register', createProxyRateLimiter(5));
+  app.use('/api/auth/google', createProxyRateLimiter(10));
 
   // Dashboard auth (#35): /api/auth/{status,setup,login} bootstrap without a
   // session; everything else under /api/* requires a logged-in dashboard user.
   // The /v1 proxy keeps its own unified-API-key auth and is NOT gated here.
   app.use('/api/auth', authRouter);
+  app.use('/api/member/chat', createProxyRateLimiter(10), requireUser, memberChatRouter);
+  app.use('/api/member/video', createProxyRateLimiter(3), requireUser, memberVideoRouter);
+  app.use('/api/admin', requireAuth, zarnurAdminRouter);
 
   // Key export re-verifies the dashboard password, which makes it the one admin
   // endpoint a guesser can attack. The broad limiter above is sized for normal
