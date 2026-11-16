@@ -8,6 +8,7 @@
 // published catalog and arrive via catalog-sync (premium on the live tier within
 // ~12h, free once each model is 30 days old) — never seeded by migrations.
 import { getDb } from '../db/index.js';
+import { isCatalogModelTombstoned } from './model-state.js';
 import { parseRetryAfterMs } from '../providers/base.js';
 import { RetryHintTracker } from '../lib/retry-hint.js';
 import { secondsUntilNextMonth } from './key-budget.js';
@@ -49,6 +50,23 @@ const KEYLESS_CAPABLE = new Set(['pollinations']);
  *  catalog's `transcriptionModels` entries on this, the way MEDIA_PLATFORMS
  *  gates the generative-media rows. */
 export const TRANSCRIPTION_PLATFORMS = new Set(['groq', 'cloudflare', 'typhoon', 'mistral', 'cohere', 'ovh', 'freeai', 'google', 'rime', 'electronhub', 'cartesia']);
+
+/** Ensure the tested free NovAI video route exists when the remote media
+ * catalog has not shipped its optional video snapshot yet. Existing admin
+ * enable/disable choices and user-deleted model tombstones are preserved. */
+export function ensureNovaiFreeVideoModel(): void {
+  const db = getDb();
+  if (isCatalogModelTombstoned(db, 'media', 'novai', 'cogvideox-flash')) return;
+
+  db.prepare(`
+    INSERT INTO media_models (platform, model_id, display_name, modality, priority, enabled, quota_label)
+    SELECT 'novai', 'cogvideox-flash', 'CogVideoX Flash', 'video', 1, 1, 'Daily free quota'
+     WHERE NOT EXISTS (
+       SELECT 1 FROM media_models
+        WHERE platform = 'novai' AND model_id = 'cogvideox-flash'
+     )
+  `).run();
+}
 
 // 'transcription' rows live in media_models like the other modalities; they
 // arrive via the catalog's dedicated `transcriptionModels` array (see
@@ -241,6 +259,7 @@ export function listMediaModels(modality: MediaModality): MediaModelRow[] {
  *  'search' / 'decision') but have their own pages and APIs, so they are left
  *  out here. */
 export function listAllMediaModels(): MediaModelRow[] {
+  ensureNovaiFreeVideoModel();
   return getDb()
     .prepare("SELECT * FROM media_models WHERE modality NOT IN ('search', 'decision') ORDER BY modality, priority, id")
     .all() as MediaModelRow[];

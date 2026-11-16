@@ -4,6 +4,7 @@ import { createApp } from '../../app.js';
 import { initDb, getDb } from '../../db/index.js';
 import { encrypt } from '../../lib/crypto.js';
 import { createSession, createUser } from '../../services/auth.js';
+import { recordCatalogModelTombstone } from '../../services/model-state.js';
 import * as guard from '../../lib/url-guard.js';
 
 const mp4 = Buffer.alloc(64);
@@ -92,6 +93,38 @@ describe('Zarnur member video generation', () => {
       models: [expect.objectContaining({ modelId: 'cogvideox-flash', provider: 'NovAI' })],
     });
     expect(listed.bytes.toString()).not.toContain('shared-novai-key');
+  });
+
+  it('adds the tested NovAI model when the catalog omits it and preserves admin disablement', async () => {
+    addKey('novai', 'shared-novai-key', true);
+
+    const listed = await call(app, 'GET', '/api/member/video/models', undefined, memberToken);
+    expect(listed.response.status).toBe(200);
+    expect(JSON.parse(listed.bytes.toString())).toEqual({
+      models: [expect.objectContaining({ modelId: 'cogvideox-flash', displayName: 'CogVideoX Flash' })],
+    });
+
+    const model = getDb().prepare(`
+      SELECT id FROM media_models
+       WHERE platform = 'novai' AND model_id = 'cogvideox-flash'
+    `).get() as { id: number };
+    getDb().prepare('UPDATE media_models SET enabled = 0 WHERE id = ?').run(model.id);
+
+    const disabled = await call(app, 'GET', '/api/member/video/models', undefined, memberToken);
+    expect(JSON.parse(disabled.bytes.toString())).toEqual({ models: [] });
+  });
+
+  it('does not recreate a NovAI model the administrator explicitly deleted', async () => {
+    recordCatalogModelTombstone(getDb(), 'media', 'novai', 'cogvideox-flash');
+
+    const listed = await call(app, 'GET', '/api/member/video/models', undefined, memberToken);
+
+    expect(listed.response.status).toBe(200);
+    expect(JSON.parse(listed.bytes.toString())).toEqual({ models: [] });
+    expect(getDb().prepare(`
+      SELECT id FROM media_models
+       WHERE platform = 'novai' AND model_id = 'cogvideox-flash'
+    `).get()).toBeUndefined();
   });
 
   it('requires an authenticated member session', async () => {

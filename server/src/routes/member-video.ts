@@ -5,7 +5,7 @@ import { getDb } from '../db/index.js';
 import { sanitizeProviderErrorMessage } from '../lib/error-redaction.js';
 import { safeHeaderValue } from '../lib/header-value.js';
 import { parseModelScope } from '../lib/model-scope.js';
-import { runVideoGeneration, MediaError } from '../services/media.js';
+import { ensureNovaiFreeVideoModel, runVideoGeneration, MediaError } from '../services/media.js';
 import type { SessionUser } from '../services/auth.js';
 import { DAILY_MEMBER_LIMIT, markMemberRequestSucceeded, recordMemberRequest } from './member-chat.js';
 import { isSecureChatRequest } from './public-chat.js';
@@ -29,6 +29,7 @@ interface SharedVideoModel extends VideoModelRow {
 }
 
 function getSharedVideoModels(): SharedVideoModel[] {
+  ensureNovaiFreeVideoModel();
   const db = getDb();
   const rows = db.prepare(`
     SELECT id, platform, model_id, display_name, quota_label, key_id
